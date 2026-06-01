@@ -142,7 +142,9 @@ export function AdminDashboard() {
       <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
         <h3 className="font-semibold">Crear torneo</h3>
         <p className="mt-1 text-xs text-zinc-500">
-          Al publicar uno nuevo, el torneo abierto anterior se cierra solo.
+          Al publicar uno nuevo, el torneo abierto anterior se cierra solo. Las
+          horas se interpretan en la zona de la tienda (STORE_TIMEZONE, ej.
+          Chile).
         </p>
         <form onSubmit={handleCreate} className="mt-4 space-y-3">
           <input

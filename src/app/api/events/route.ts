@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
-import { slugify } from "@/lib/event-utils";
+import { parseDateTimeLocalInTimeZone, slugify } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
@@ -49,21 +49,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const starts = new Date(startsAt);
-    const deadline = new Date(decklistDeadlineAt);
+    await connectDB();
+
+    const store = await Store.findById(storeId);
+    if (!store) {
+      return NextResponse.json({ error: msg.api.storeNotFound }, { status: 404 });
+    }
+
+    const tz = store.timezone ?? "America/Santiago";
+    const starts = parseDateTimeLocalInTimeZone(startsAt, tz);
+    const deadline = parseDateTimeLocalInTimeZone(decklistDeadlineAt, tz);
+
+    if (Number.isNaN(starts.getTime()) || Number.isNaN(deadline.getTime())) {
+      return NextResponse.json(
+        { error: "Fecha u hora no válida" },
+        { status: 400 }
+      );
+    }
 
     if (deadline >= starts) {
       return NextResponse.json(
         { error: msg.api.deadlineBeforeStart },
         { status: 400 }
       );
-    }
-
-    await connectDB();
-
-    const store = await Store.findById(storeId);
-    if (!store) {
-      return NextResponse.json({ error: msg.api.storeNotFound }, { status: 404 });
     }
 
     await Event.updateMany(

@@ -2,7 +2,13 @@ import { notFound } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { connectDB } from "@/lib/db";
-import { formatDeadline, formatEventType, isDeadlinePassed } from "@/lib/event-utils";
+import {
+  formatDeadline,
+  formatEventType,
+  formatNowInTimeZone,
+  getTimezoneLabel,
+  isDeadlinePassed,
+} from "@/lib/event-utils";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -36,6 +42,8 @@ export default async function EventPage({
     new Date(event.decklistDeadlineAt),
     timezone
   );
+  const nowLabel = formatNowInTimeZone(timezone);
+  const tzLabel = getTimezoneLabel(timezone);
 
   const typeLabel = formatEventType(
     event.type as "cup" | "challenge" | "local"
@@ -48,7 +56,11 @@ export default async function EventPage({
         <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-400">
           <p>
             <span className="text-zinc-300">Hora límite de listas:</span>{" "}
-            {deadlineLabel}
+            {deadlineLabel} ({tzLabel})
+          </p>
+          <p className="mt-2">
+            <span className="text-zinc-300">Hora actual en la tienda:</span>{" "}
+            {nowLabel} ({tzLabel})
           </p>
           {!canSubmit && (
             <p className="mt-2 font-medium text-amber-400">

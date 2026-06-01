@@ -1,3 +1,66 @@
+/** Convierte "2026-06-01T12:00" (sin Z) a instante UTC usando la zona de la tienda. */
+export function parseDateTimeLocalInTimeZone(
+  localDateTime: string,
+  timeZone: string
+): Date {
+  const match = localDateTime.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/
+  );
+  if (!match) {
+    return new Date(localDateTime);
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+
+  const targetUtc = Date.UTC(year, month - 1, day, hour, minute);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  function wallTimeToUtcParts(utcMs: number) {
+    const parts = formatter.formatToParts(new Date(utcMs));
+    const map: Record<string, string> = {};
+    for (const p of parts) {
+      if (p.type !== "literal") map[p.type] = p.value;
+    }
+    return {
+      year: Number(map.year),
+      month: Number(map.month),
+      day: Number(map.day),
+      hour: Number(map.hour),
+      minute: Number(map.minute),
+    };
+  }
+
+  let utcMs = targetUtc;
+  for (let i = 0; i < 4; i++) {
+    const wall = wallTimeToUtcParts(utcMs);
+    const wallAsUtc = Date.UTC(
+      wall.year,
+      wall.month - 1,
+      wall.day,
+      wall.hour,
+      wall.minute
+    );
+    const diff = targetUtc - wallAsUtc;
+    if (diff === 0) break;
+    utcMs += diff;
+  }
+
+  return new Date(utcMs);
+}
+
 export function isDeadlinePassed(deadline: Date): boolean {
   return Date.now() > deadline.getTime();
 }
@@ -15,11 +78,31 @@ export function slugify(text: string): string {
 }
 
 export function formatDeadline(deadline: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("es", {
+  return new Intl.DateTimeFormat("es-CL", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone,
   }).format(deadline);
+}
+
+export function formatNowInTimeZone(timeZone: string): string {
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone,
+  }).format(new Date());
+}
+
+export function getTimezoneLabel(timeZone: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat("es-CL", {
+      timeZone,
+      timeZoneName: "short",
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? timeZone;
+  } catch {
+    return timeZone;
+  }
 }
 
 export function formatEventType(
