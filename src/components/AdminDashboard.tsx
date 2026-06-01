@@ -136,11 +136,11 @@ export function AdminDashboard() {
       </div>
 
       {openEvent && (
-        <section className="flex gap-3 rounded-xl border border-emerald-900/50 bg-emerald-950/20 p-4">
+        <section className="sub-panel flex gap-3 rounded-xl p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase text-emerald-400">
-              Torneo activo
-            </p>
+          <p className="text-xs font-semibold uppercase text-sky-400">
+            Torneo activo
+          </p>
             <p className="mt-1 font-bold">{openEvent.name}</p>
             <p className="mt-1 text-xs text-zinc-400">
               Límite:{" "}
@@ -153,7 +153,7 @@ export function AdminDashboard() {
               deadlineIso={openEvent.decklistDeadlineAt}
               closed={openEvent.status !== "open"}
             />
-            <p className="mt-2 break-all font-mono text-sm text-amber-300">
+            <p className="mt-2 break-all font-mono text-sm text-sky-300">
               {origin}/e/{openEvent.slug}
             </p>
             <Link
@@ -167,7 +167,7 @@ export function AdminDashboard() {
         </section>
       )}
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-4">
+      <section className="sub-panel rounded-xl p-4">
         <h3 className="font-semibold">Crear torneo</h3>
         <p className="mt-1 text-xs text-zinc-500">
           Al publicar uno nuevo, el torneo abierto anterior se cierra solo. Las
@@ -176,7 +176,7 @@ export function AdminDashboard() {
           {serverClock && (
             <>
               ). En el servidor ahora son:{" "}
-              <span className="text-amber-400/90">{serverClock}</span>
+              <span className="text-sky-300">{serverClock}</span>
             </>
           )}
           {!serverClock && ")."}
@@ -188,7 +188,7 @@ export function AdminDashboard() {
             required
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+            className="sub-input px-3 py-2 text-sm"
           />
           <select
             value={form.type}
@@ -198,7 +198,7 @@ export function AdminDashboard() {
                 type: e.target.value as "cup" | "challenge" | "local",
               })
             }
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+            className="sub-input px-3 py-2 text-sm"
           >
             <option value="challenge">League Challenge</option>
             <option value="cup">League Cup</option>
@@ -213,7 +213,7 @@ export function AdminDashboard() {
               onChange={(e) =>
                 setForm({ ...form, decklistDeadlineAt: e.target.value })
               }
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+              className="sub-input mt-1 px-3 py-2 text-sm"
             />
           </label>
           <label className="block text-xs text-zinc-400">
@@ -223,7 +223,7 @@ export function AdminDashboard() {
               required
               value={form.startsAt}
               onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+              className="sub-input mt-1 px-3 py-2 text-sm"
             />
           </label>
           <Button type="submit" disabled={creating} className="w-full">
@@ -231,7 +231,7 @@ export function AdminDashboard() {
           </Button>
         </form>
         {message && (
-          <p className="mt-3 text-sm text-amber-300">{message}</p>
+          <p className="mt-3 text-sm text-sky-300">{message}</p>
         )}
       </section>
 
@@ -267,7 +267,7 @@ export function AdminDashboard() {
                 {openEvent && (
                   <Link
                     href={`/e/${openEvent.slug}/deck/${s.editToken}`}
-                    className="text-sm text-amber-400 underline"
+                    className="sub-link text-sm underline"
                   >
                     Ver lista
                   </Link>

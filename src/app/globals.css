@@ -1,27 +1,113 @@
 @import "tailwindcss";
 
+/* Tema Substitute — cyber azul + rojo visor */
 :root {
-  --background: #09090b;
-  --foreground: #fafafa;
+  --background: #04080f;
+  --foreground: #e8f4ff;
+  --sub-panel: #0a121f;
+  --sub-panel-border: rgba(56, 189, 248, 0.22);
+  --sub-cyan: #38bdf8;
+  --sub-cyan-bright: #7dd3fc;
+  --sub-cyan-glow: rgba(56, 189, 248, 0.35);
+  --sub-red: #f43f5e;
+  --sub-red-glow: rgba(244, 63, 94, 0.4);
+  --sub-grid: rgba(56, 189, 248, 0.08);
+  --sub-grid-line: rgba(56, 189, 248, 0.18);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-sub-cyan: var(--sub-cyan);
+  --color-sub-cyan-bright: var(--sub-cyan-bright);
+  --color-sub-red: var(--sub-red);
+  --color-sub-panel: var(--sub-panel);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image:
+    linear-gradient(var(--sub-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--sub-grid-line) 1px, transparent 1px),
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(244, 63, 94, 0.06), transparent);
+  background-size:
+    32px 32px,
+    32px 32px,
+    100% 100%,
+    100% 100%;
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Paneles tipo “plataforma holográfica” */
+.sub-panel {
+  border: 1px solid var(--sub-panel-border);
+  background: linear-gradient(
+    165deg,
+    rgba(10, 18, 31, 0.95) 0%,
+    rgba(6, 12, 22, 0.88) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4) inset,
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 0 24px var(--sub-cyan-glow);
+}
+
+.sub-panel-accent {
+  border-color: rgba(244, 63, 94, 0.25);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4) inset,
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 0 20px var(--sub-red-glow);
+}
+
+.sub-glow-text {
+  text-shadow: 0 0 20px var(--sub-cyan-glow);
+}
+
+.sub-btn-primary {
+  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+  color: #041018;
+  font-weight: 700;
+  box-shadow:
+    0 0 20px var(--sub-cyan-glow),
+    0 2px 0 rgba(255, 255, 255, 0.15) inset;
+}
+
+.sub-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 100%);
+}
+
+.sub-link {
+  color: var(--sub-cyan-bright);
+}
+
+.sub-link:hover {
+  color: #fff;
+}
+
+.sub-input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(6, 13, 24, 0.9);
+  color: #e8f4ff;
+}
+
+.sub-input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
 }
 
 @media print {
   body {
     background: white;
     color: black;
+    background-image: none;
   }
   .no-print {
     display: none !important;

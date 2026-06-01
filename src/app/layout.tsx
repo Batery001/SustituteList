@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Substitute List · Registro de mazos Pokémon TCG",
+  title: "Substitute List",
   description:
     "Envía y gestiona listas Standard para League Cups y Challenges locales.",
 };
@@ -28,9 +28,7 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
-      <body className="min-h-full bg-zinc-950 text-zinc-100 antialiased">
-        {children}
-      </body>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { BrandHeader } from "@/components/BrandHeader";
 import { connectDB } from "@/lib/db";
@@ -23,33 +24,46 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="mx-auto min-h-full max-w-lg flex-col">
-      <BrandHeader subtitle="Registro de mazos Standard para ligas locales" />
+    <div className="mx-auto flex min-h-full max-w-lg flex-col">
+      <BrandHeader />
       <main className="flex flex-1 flex-col gap-6 px-4 py-8">
         {activeEvent ? (
-          <section className="rounded-2xl border border-amber-800/50 bg-gradient-to-b from-amber-950/40 to-zinc-900 p-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-amber-500">
+          <section className="sub-panel relative overflow-hidden rounded-2xl p-6">
+            <div
+              className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 opacity-20"
+              aria-hidden
+            >
+              <Image
+                src="/substitute-hero.png"
+                alt=""
+                fill
+                className="object-contain"
+              />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-400">
               Torneo activo
             </p>
-            <h2 className="mt-1 text-xl font-bold">{activeEvent.name}</h2>
+            <h2 className="mt-1 text-xl font-bold text-sky-50">
+              {activeEvent.name}
+            </h2>
             <Link
               href={`/e/${activeEvent.slug}`}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-amber-500 py-3 text-sm font-bold text-zinc-950"
+              className="sub-btn-primary mt-4 inline-flex w-full items-center justify-center rounded-xl py-3 text-sm"
             >
               Enviar mi lista
             </Link>
           </section>
         ) : (
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center">
-            <p className="text-zinc-300">No hay torneo abierto en este momento.</p>
-            <p className="mt-2 text-sm text-zinc-500">
+          <section className="sub-panel rounded-2xl p-6 text-center">
+            <p className="text-sky-100/80">No hay torneo abierto en este momento.</p>
+            <p className="mt-2 text-sm text-sky-100/45">
               La tienda puede crear uno desde el panel de administración.
             </p>
           </section>
         )}
 
-        <section className="space-y-3 text-sm text-zinc-400">
-          <h3 className="font-semibold text-zinc-200">Para jugadores</h3>
+        <section className="space-y-3 text-sm text-sky-100/50">
+          <h3 className="font-semibold text-sky-100/90">Para jugadores</h3>
           <ul className="list-inside list-disc space-y-1">
             <li>Pega tu lista desde Pokémon TCG Live (formato en inglés)</li>
             <li>Validación en vivo de 60 cartas</li>
@@ -57,10 +71,7 @@ export default async function HomePage() {
           </ul>
         </section>
 
-        <Link
-          href="/admin/login"
-          className="text-center text-sm text-zinc-500 underline hover:text-zinc-300"
-        >
+        <Link href="/admin/login" className="sub-link text-center text-sm">
           Acceso tienda / administración
         </Link>
       </main>

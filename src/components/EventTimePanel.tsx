@@ -9,7 +9,6 @@ interface EventTimePanelProps {
   deadline: Date;
   timeZone: string;
   canSubmit: boolean;
-  /** Contenido extra bajo la cuenta atrás (ej. botón copiar enlace). */
   footer?: ReactNode;
 }
 
@@ -26,18 +25,18 @@ export function EventTimePanel({
   const deadlineIso = deadline.toISOString();
 
   return (
-    <div className="mb-6 flex gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-      <div className="min-w-0 flex-1 text-sm text-zinc-400">
+    <div className="sub-panel mb-6 flex gap-3 rounded-xl p-4">
+      <div className="min-w-0 flex-1 text-sm text-sky-100/60">
         {eventTypeLabel && (
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-500/90">
+          <p className="text-xs font-semibold uppercase tracking-wide text-sky-400">
             {eventTypeLabel}
           </p>
         )}
-        <p className="truncate font-semibold text-zinc-100">{eventName}</p>
+        <p className="truncate font-semibold text-sky-50">{eventName}</p>
         <p className="mt-2">
-          <span className="text-zinc-300">Hora límite:</span>{" "}
-          <span className="text-zinc-200">{deadlineLabel}</span>
-          <span className="text-zinc-500">
+          <span className="text-sky-200/80">Hora límite:</span>{" "}
+          <span className="text-sky-100">{deadlineLabel}</span>
+          <span className="text-sky-100/40">
             {" "}
             (zona: {tzLabel}
             {timeZone !== tzLabel ? ` · ${timeZone}` : ""})

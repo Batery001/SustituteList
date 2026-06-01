@@ -78,9 +78,9 @@ export function EventSubmitForm({
 
   if (!canSubmit) {
     return (
-      <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-6 text-center">
-        <p className="font-semibold text-zinc-200">Envío cerrado</p>
-        <p className="mt-2 text-sm text-zinc-400">
+      <div className="sub-panel rounded-xl p-6 text-center">
+        <p className="font-semibold text-sky-100">Envío cerrado</p>
+        <p className="mt-2 text-sm text-sky-100/55">
           La hora límite fue {deadlineLabel}. Si ya enviaste tu lista, usa tu
           enlace personal para verla.
         </p>
@@ -92,7 +92,7 @@ export function EventSubmitForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-300">
+          <label className="mb-1 block text-sm font-medium text-sky-200/80">
             Nombre completo
           </label>
           <input
@@ -100,11 +100,11 @@ export function EventSubmitForm({
             required
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-3 text-zinc-100 focus:border-amber-500 focus:outline-none"
+            className="sub-input px-3 py-3"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-300">
+          <label className="mb-1 block text-sm font-medium text-sky-200/80">
             Pop ID (Player ID)
           </label>
           <input
@@ -113,11 +113,11 @@ export function EventSubmitForm({
             value={popId}
             onChange={(e) => setPopId(e.target.value)}
             placeholder="1234567890"
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-3 text-zinc-100 focus:border-amber-500 focus:outline-none"
+            className="sub-input px-3 py-3"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-zinc-300">
+          <label className="mb-1 block text-sm font-medium text-sky-200/80">
             Fecha de nacimiento
           </label>
           <input
@@ -125,10 +125,10 @@ export function EventSubmitForm({
             required
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-3 text-zinc-100 focus:border-amber-500 focus:outline-none"
+            className="sub-input px-3 py-3"
           />
           {division && (
-            <p className="mt-1 text-sm text-amber-400">
+            <p className="mt-1 text-sm text-sky-400">
               División: {formatDivision(division)}
             </p>
           )}
@@ -144,7 +144,7 @@ export function EventSubmitForm({
             <p className="mt-2">
               <a
                 href={`/e/${eventSlug}/deck/${existingToken}`}
-                className="font-semibold text-amber-400 underline"
+                className="sub-link font-semibold underline"
               >
                 Abrir mi página de lista →
               </a>
@@ -157,7 +157,7 @@ export function EventSubmitForm({
         {loading ? "Enviando…" : "Enviar lista"}
       </Button>
 
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-sky-100/40">
         Hora límite: {deadlineLabel}. Guarda tu enlace personal después de
         enviar.
       </p>

@@ -43,17 +43,17 @@ export default function AdminLoginPage() {
       <main className="px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm text-zinc-300">Correo</label>
+            <label className="mb-1 block text-sm text-sky-200/80">Correo</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-3"
+              className="sub-input px-3 py-3"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-zinc-300">
+            <label className="mb-1 block text-sm text-sky-200/80">
               Contraseña
             </label>
             <input
@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-3"
+              className="sub-input px-3 py-3"
             />
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
@@ -69,7 +69,7 @@ export default function AdminLoginPage() {
             {loading ? "Entrando…" : "Iniciar sesión"}
           </Button>
         </form>
-        <p className="mt-6 text-center text-xs text-zinc-500">
+        <p className="mt-6 text-center text-xs text-sky-100/40">
           Credenciales en .env.local (ADMIN_EMAIL / ADMIN_PASSWORD)
         </p>
       </main>

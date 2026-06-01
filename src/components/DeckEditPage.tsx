@@ -115,7 +115,7 @@ export function DeckEditPage({ token }: { token: string }) {
           <button
             type="button"
             onClick={copyLink}
-            className="mt-3 text-sm font-semibold text-amber-400 underline"
+            className="sub-link mt-3 text-sm font-semibold underline"
           >
             {copied ? "¡Enlace copiado!" : "Copiar mi enlace personal"}
           </button>

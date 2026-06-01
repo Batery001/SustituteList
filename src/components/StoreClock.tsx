@@ -5,7 +5,6 @@ import { getTimezoneLabel } from "@/lib/event-utils";
 
 interface StoreClockProps {
   timeZone: string;
-  /** Solo hora, sin fecha (para espacios pequeños). */
   compact?: boolean;
 }
 
@@ -21,7 +20,7 @@ export function StoreClock({ timeZone, compact = false }: StoreClockProps) {
   if (!now) {
     return (
       <div
-        className={`animate-pulse rounded-xl bg-zinc-800 ${compact ? "h-14 w-20" : "h-[88px] w-28"}`}
+        className={`animate-pulse rounded-xl bg-sky-950/50 ${compact ? "h-14 w-20" : "h-[88px] w-28"}`}
         aria-hidden
       />
     );
@@ -46,25 +45,25 @@ export function StoreClock({ timeZone, compact = false }: StoreClockProps) {
 
   return (
     <div
-      className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-amber-700/50 bg-gradient-to-b from-zinc-900 to-zinc-950 px-3 py-2.5 shadow-inner"
+      className="flex shrink-0 flex-col items-center justify-center rounded-xl border border-sky-400/35 bg-gradient-to-b from-[#0c1628] to-[#060b12] px-3 py-2.5 shadow-[0_0_24px_rgba(56,189,248,0.15)]"
       aria-live="polite"
       aria-label={`Hora actual: ${time}, ${tz}`}
     >
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-500/90">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-sky-400/90">
         Ahora
       </span>
       <time
-        className="font-mono text-2xl font-bold leading-tight tabular-nums tracking-tight text-amber-400"
+        className="font-mono text-2xl font-bold leading-tight tabular-nums tracking-tight text-sky-300 sub-glow-text"
         dateTime={now.toISOString()}
       >
         {time}
       </time>
       {!compact && (
         <>
-          <span className="mt-0.5 text-center text-xs capitalize text-zinc-500">
+          <span className="mt-0.5 text-center text-xs capitalize text-sky-100/45">
             {date}
           </span>
-          <span className="text-[10px] text-zinc-600">{tz}</span>
+          <span className="text-[10px] text-rose-400/70">{tz}</span>
         </>
       )}
     </div>

@@ -25,11 +25,11 @@ function calcTimeLeft(deadlineMs: number): TimeLeft | null {
 
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
-    <div className="flex min-w-[2.75rem] flex-col items-center rounded-lg bg-zinc-950/80 px-2 py-1.5 ring-1 ring-zinc-700/80">
-      <span className="font-mono text-xl font-bold tabular-nums leading-none text-amber-400">
+    <div className="flex min-w-[2.75rem] flex-col items-center rounded-lg border border-sky-500/25 bg-[#060d18]/90 px-2 py-1.5">
+      <span className="font-mono text-xl font-bold tabular-nums leading-none text-sky-300">
         {String(value).padStart(2, "0")}
       </span>
-      <span className="mt-0.5 text-[10px] font-medium uppercase text-zinc-500">
+      <span className="mt-0.5 text-[10px] font-medium uppercase text-sky-100/40">
         {label}
       </span>
     </div>
@@ -37,9 +37,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
 }
 
 interface DeadlineCountdownProps {
-  /** Fecha límite en ISO (ej. desde `deadline.toISOString()`). */
   deadlineIso: string;
-  /** Si el envío ya está cerrado por estado del torneo. */
   closed?: boolean;
 }
 
@@ -70,15 +68,13 @@ export function DeadlineCountdown({
   if (expired) {
     return (
       <div
-        className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/25 px-3 py-2.5"
+        className="mt-3 rounded-lg border border-rose-500/30 bg-rose-950/25 px-3 py-2.5"
         role="status"
       >
-        <p className="text-xs font-semibold uppercase tracking-wide text-amber-500/80">
+        <p className="text-xs font-semibold uppercase tracking-wide text-rose-400/90">
           Tiempo para enviar
         </p>
-        <p className="mt-1 text-sm font-semibold text-amber-400">
-          Plazo terminado
-        </p>
+        <p className="mt-1 text-sm font-semibold text-rose-300">Plazo terminado</p>
       </div>
     );
   }
@@ -87,15 +83,15 @@ export function DeadlineCountdown({
     <div
       className={`mt-3 rounded-lg border px-3 py-2.5 ${
         urgent
-          ? "border-red-800/50 bg-red-950/20"
-          : "border-emerald-900/40 bg-emerald-950/15"
+          ? "border-rose-500/40 bg-rose-950/20 shadow-[0_0_16px_rgba(244,63,94,0.15)]"
+          : "border-sky-500/30 bg-sky-950/20 shadow-[0_0_16px_rgba(56,189,248,0.1)]"
       }`}
       role="timer"
       aria-live="polite"
     >
       <p
         className={`text-xs font-semibold uppercase tracking-wide ${
-          urgent ? "text-red-400/90" : "text-emerald-500/90"
+          urgent ? "text-rose-400" : "text-sky-400"
         }`}
       >
         Tiempo para enviar tu lista
@@ -107,7 +103,7 @@ export function DeadlineCountdown({
         <CountdownUnit value={left.seconds} label="seg" />
       </div>
       {urgent && (
-        <p className="mt-2 text-xs text-red-300/90">Queda menos de 1 hora</p>
+        <p className="mt-2 text-xs text-rose-300/90">Queda menos de 1 hora</p>
       )}
     </div>
   );
