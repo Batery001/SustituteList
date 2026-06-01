@@ -27,7 +27,8 @@ export default function AdminLoginPage() {
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? "No se pudo iniciar sesión");
+      const hint = data.hint ? ` ${data.hint}` : "";
+      setError(`${data.error ?? "No se pudo iniciar sesión"}${hint}`);
       return;
     }
 

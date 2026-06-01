@@ -1,14 +1,17 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import { loginErrorResponse } from "@/lib/api-errors";
 import {
   COOKIE_NAME,
   MAX_AGE,
   createSessionToken,
 } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
-import { ensureStore } from "@/lib/store-seed";
 import { msg } from "@/lib/messages";
+import { ensureStore } from "@/lib/store-seed";
 import { Store } from "@/models/Store";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
@@ -24,20 +27,36 @@ export async function POST(request: Request) {
       );
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+
     await connectDB();
     await ensureStore();
 
-    const store = await Store.findOne({
-      email: email.toLowerCase().trim(),
-    });
+    const store = await Store.findOne({ email: normalizedEmail });
 
     if (!store) {
-      return NextResponse.json({ error: msg.api.loginFailed }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: msg.api.loginFailed,
+          hint:
+            adminEmail && normalizedEmail !== adminEmail
+              ? `Usa el mismo correo que ADMIN_EMAIL en Vercel (${adminEmail}).`
+              : undefined,
+        },
+        { status: 401 }
+      );
     }
 
     const valid = await bcrypt.compare(password, store.passwordHash);
     if (!valid) {
-      return NextResponse.json({ error: msg.api.loginFailed }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: msg.api.loginFailed,
+          hint: "La contraseña no coincide. Debe ser la misma que ADMIN_PASSWORD en Vercel.",
+        },
+        { status: 401 }
+      );
     }
 
     const token = createSessionToken(store._id.toString());
@@ -56,10 +75,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (err) {
-    console.error("Login error:", err);
-    return NextResponse.json(
-      { error: msg.api.serverConfigError },
-      { status: 500 }
-    );
+    const { status, body } = loginErrorResponse(err);
+    return NextResponse.json(body, { status });
   }
 }

@@ -29,9 +29,21 @@ export async function connectDB(): Promise<typeof mongoose> {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false });
+    cached.promise = mongoose.connect(MONGODB_URI, {
+      bufferCommands: false,
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 15000,
+      socketTimeoutMS: 45000,
+    });
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (err) {
+    cached.promise = null;
+    cached.conn = null;
+    throw err;
+  }
+
   return cached.conn;
 }

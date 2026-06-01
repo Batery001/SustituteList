@@ -21,6 +21,14 @@ export const msg = {
     loginFailed: "Credenciales incorrectas",
     emailPasswordRequired: "Correo y contraseña son obligatorios",
     serverConfigError: "Error de configuración del servidor",
+    missingMongoUri:
+      "Falta MONGODB_URI en Vercel. Añádela y haz Redeploy.",
+    missingSessionSecret:
+      "Falta SESSION_SECRET en Vercel. Añádela y haz Redeploy.",
+    missingAdminEnv:
+      "Faltan ADMIN_EMAIL o ADMIN_PASSWORD en Vercel. Añádelas y haz Redeploy.",
+    dbConnectionFailed:
+      "No se pudo conectar a MongoDB. Revisa la URI en Vercel y en Atlas: Network Access (0.0.0.0/0) y usuario/contraseña correctos.",
     nameDatesRequired:
       "Nombre, hora de inicio y hora límite de listas son obligatorios",
     deadlineBeforeStart:
