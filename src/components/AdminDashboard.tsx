@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DeadlineCountdown } from "@/components/DeadlineCountdown";
 import { StoreClock } from "@/components/StoreClock";
 import { Button } from "@/components/ui/Button";
 import { formatDivision, type Division } from "@/lib/division";
@@ -139,6 +140,10 @@ export function AdminDashboard() {
                 storeTimezone
               )}
             </p>
+            <DeadlineCountdown
+              deadlineIso={openEvent.decklistDeadlineAt}
+              closed={openEvent.status !== "open"}
+            />
             <p className="mt-2 break-all font-mono text-sm text-amber-300">
               {origin}/e/{openEvent.slug}
             </p>

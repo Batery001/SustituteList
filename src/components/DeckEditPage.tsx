@@ -3,11 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { DeckView } from "@/components/DeckView";
-import { StoreClock } from "@/components/StoreClock";
+import { EventTimePanel } from "@/components/EventTimePanel";
 import { Button } from "@/components/ui/Button";
-import { getTimezoneLabel } from "@/lib/event-utils";
 import type { Division } from "@/lib/division";
-import { formatDeadline } from "@/lib/event-utils";
 import { getValidationErrors } from "@/lib/validation-display";
 
 interface DeckData {
@@ -105,21 +103,15 @@ export function DeckEditPage({ token }: { token: string }) {
   if (!data) return null;
 
   const { submission, event, store } = data;
-  const deadlineLabel = formatDeadline(
-    new Date(event.decklistDeadlineAt),
-    store.timezone
-  );
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-3 rounded-xl border border-amber-900/40 bg-amber-950/20 p-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-amber-200">{event.name}</p>
-          <p className="mt-1 text-xs text-zinc-400">
-            {event.canEdit
-              ? `Puedes editar hasta ${deadlineLabel} (${getTimezoneLabel(store.timezone)})`
-              : `Envío cerrado (${deadlineLabel})`}
-          </p>
+      <EventTimePanel
+        eventName={event.name}
+        deadline={new Date(event.decklistDeadlineAt)}
+        timeZone={store.timezone}
+        canSubmit={event.canEdit}
+        footer={
           <button
             type="button"
             onClick={copyLink}
@@ -127,9 +119,8 @@ export function DeckEditPage({ token }: { token: string }) {
           >
             {copied ? "¡Enlace copiado!" : "Copiar mi enlace personal"}
           </button>
-        </div>
-        <StoreClock timeZone={store.timezone} />
-      </div>
+        }
+      />
 
       {mode === "view" ? (
         <>

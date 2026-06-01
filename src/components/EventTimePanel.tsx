@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+import { DeadlineCountdown } from "@/components/DeadlineCountdown";
 import { StoreClock } from "@/components/StoreClock";
 import { formatDeadline, getTimezoneLabel } from "@/lib/event-utils";
 
@@ -7,6 +9,8 @@ interface EventTimePanelProps {
   deadline: Date;
   timeZone: string;
   canSubmit: boolean;
+  /** Contenido extra bajo la cuenta atrás (ej. botón copiar enlace). */
+  footer?: ReactNode;
 }
 
 export function EventTimePanel({
@@ -15,9 +19,11 @@ export function EventTimePanel({
   deadline,
   timeZone,
   canSubmit,
+  footer,
 }: EventTimePanelProps) {
   const deadlineLabel = formatDeadline(deadline, timeZone);
   const tzLabel = getTimezoneLabel(timeZone);
+  const deadlineIso = deadline.toISOString();
 
   return (
     <div className="mb-6 flex gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
@@ -33,13 +39,10 @@ export function EventTimePanel({
           <span className="text-zinc-200">{deadlineLabel}</span>
           <span className="text-zinc-500"> ({tzLabel})</span>
         </p>
-        {!canSubmit ? (
-          <p className="mt-2 font-medium text-amber-400">
-            Envío de listas cerrado
-          </p>
-        ) : (
-          <p className="mt-2 text-emerald-400/90">Envío abierto</p>
-        )}
+
+        <DeadlineCountdown deadlineIso={deadlineIso} closed={!canSubmit} />
+
+        {footer}
       </div>
       <StoreClock timeZone={timeZone} />
     </div>
