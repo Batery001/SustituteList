@@ -20,8 +20,13 @@ export async function GET() {
     .lean();
 
   const openEvent = events.find((e) => e.status === "open") ?? null;
+  const store = await Store.findById(storeId).lean();
 
-  return NextResponse.json({ events, openEvent });
+  return NextResponse.json({
+    events,
+    openEvent,
+    storeTimezone: store?.timezone ?? "America/Santiago",
+  });
 }
 
 export async function POST(request: Request) {

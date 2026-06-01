@@ -1,14 +1,9 @@
 import { notFound } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
+import { EventTimePanel } from "@/components/EventTimePanel";
 import { connectDB } from "@/lib/db";
-import {
-  formatDeadline,
-  formatEventType,
-  formatNowInTimeZone,
-  getTimezoneLabel,
-  isDeadlinePassed,
-} from "@/lib/event-utils";
+import { formatDeadline, formatEventType, isDeadlinePassed } from "@/lib/event-utils";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -35,15 +30,11 @@ export default async function EventPage({
   if (!event) notFound();
 
   const store = await Store.findById(event.storeId).lean();
-  const timezone = store?.timezone ?? "UTC";
-  const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
+  const timezone = store?.timezone ?? "America/Santiago";
+  const deadline = new Date(event.decklistDeadlineAt);
+  const deadlinePassed = isDeadlinePassed(deadline);
   const canSubmit = event.status === "open" && !deadlinePassed;
-  const deadlineLabel = formatDeadline(
-    new Date(event.decklistDeadlineAt),
-    timezone
-  );
-  const nowLabel = formatNowInTimeZone(timezone);
-  const tzLabel = getTimezoneLabel(timezone);
+  const deadlineLabel = formatDeadline(deadline, timezone);
 
   const typeLabel = formatEventType(
     event.type as "cup" | "challenge" | "local"
@@ -53,21 +44,13 @@ export default async function EventPage({
     <div className="mx-auto min-h-full max-w-lg">
       <BrandHeader subtitle={`${typeLabel} · ${event.name}`} />
       <main className="px-4 py-6">
-        <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-400">
-          <p>
-            <span className="text-zinc-300">Hora límite de listas:</span>{" "}
-            {deadlineLabel} ({tzLabel})
-          </p>
-          <p className="mt-2">
-            <span className="text-zinc-300">Hora actual en la tienda:</span>{" "}
-            {nowLabel} ({tzLabel})
-          </p>
-          {!canSubmit && (
-            <p className="mt-2 font-medium text-amber-400">
-              El envío de listas está cerrado para este torneo.
-            </p>
-          )}
-        </div>
+        <EventTimePanel
+          eventName={event.name}
+          eventTypeLabel={typeLabel}
+          deadline={deadline}
+          timeZone={timezone}
+          canSubmit={canSubmit}
+        />
         <EventSubmitForm
           eventSlug={slug}
           canSubmit={canSubmit}

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { DeckView } from "@/components/DeckView";
+import { StoreClock } from "@/components/StoreClock";
 import { Button } from "@/components/ui/Button";
+import { getTimezoneLabel } from "@/lib/event-utils";
 import type { Division } from "@/lib/division";
 import { formatDeadline } from "@/lib/event-utils";
 import { getValidationErrors } from "@/lib/validation-display";
@@ -110,20 +112,23 @@ export function DeckEditPage({ token }: { token: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-amber-900/40 bg-amber-950/20 p-4">
-        <p className="text-sm font-medium text-amber-200">{event.name}</p>
-        <p className="mt-1 text-xs text-zinc-400">
-          {event.canEdit
-            ? `Puedes editar hasta ${deadlineLabel}`
-            : `Envío cerrado (${deadlineLabel})`}
-        </p>
-        <button
-          type="button"
-          onClick={copyLink}
-          className="mt-3 text-sm font-semibold text-amber-400 underline"
-        >
-          {copied ? "¡Enlace copiado!" : "Copiar mi enlace personal"}
-        </button>
+      <div className="flex gap-3 rounded-xl border border-amber-900/40 bg-amber-950/20 p-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-amber-200">{event.name}</p>
+          <p className="mt-1 text-xs text-zinc-400">
+            {event.canEdit
+              ? `Puedes editar hasta ${deadlineLabel} (${getTimezoneLabel(store.timezone)})`
+              : `Envío cerrado (${deadlineLabel})`}
+          </p>
+          <button
+            type="button"
+            onClick={copyLink}
+            className="mt-3 text-sm font-semibold text-amber-400 underline"
+          >
+            {copied ? "¡Enlace copiado!" : "Copiar mi enlace personal"}
+          </button>
+        </div>
+        <StoreClock timeZone={store.timezone} />
       </div>
 
       {mode === "view" ? (

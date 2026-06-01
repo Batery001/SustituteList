@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { StoreClock } from "@/components/StoreClock";
 import { Button } from "@/components/ui/Button";
 import { formatDivision, type Division } from "@/lib/division";
+import { formatDeadline } from "@/lib/event-utils";
 
 interface EventItem {
   _id: string;
@@ -40,6 +42,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [storeTimezone, setStoreTimezone] = useState("America/Santiago");
 
   const [form, setForm] = useState({
     name: "",
@@ -57,6 +60,7 @@ export function AdminDashboard() {
     const data = await res.json();
     setEvents(data.events ?? []);
     setOpenEvent(data.openEvent ?? null);
+    setStoreTimezone(data.storeTimezone ?? "America/Santiago");
 
     if (data.openEvent?._id) {
       const subRes = await fetch(
@@ -122,20 +126,30 @@ export function AdminDashboard() {
       </div>
 
       {openEvent && (
-        <section className="rounded-xl border border-emerald-900/50 bg-emerald-950/20 p-4">
-          <p className="text-xs font-semibold uppercase text-emerald-400">
-            Torneo activo
-          </p>
-          <p className="mt-1 font-bold">{openEvent.name}</p>
-          <p className="mt-2 break-all font-mono text-sm text-amber-300">
-            {origin}/e/{openEvent.slug}
-          </p>
-          <Link
-            href={`/e/${openEvent.slug}`}
-            className="mt-3 inline-block text-sm text-zinc-400 underline"
-          >
-            Abrir página de jugadores →
-          </Link>
+        <section className="flex gap-3 rounded-xl border border-emerald-900/50 bg-emerald-950/20 p-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold uppercase text-emerald-400">
+              Torneo activo
+            </p>
+            <p className="mt-1 font-bold">{openEvent.name}</p>
+            <p className="mt-1 text-xs text-zinc-400">
+              Límite:{" "}
+              {formatDeadline(
+                new Date(openEvent.decklistDeadlineAt),
+                storeTimezone
+              )}
+            </p>
+            <p className="mt-2 break-all font-mono text-sm text-amber-300">
+              {origin}/e/{openEvent.slug}
+            </p>
+            <Link
+              href={`/e/${openEvent.slug}`}
+              className="mt-3 inline-block text-sm text-zinc-400 underline"
+            >
+              Abrir página de jugadores →
+            </Link>
+          </div>
+          <StoreClock timeZone={storeTimezone} />
         </section>
       )}
 
