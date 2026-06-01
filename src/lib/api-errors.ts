@@ -37,9 +37,15 @@ export function loginErrorResponse(err: unknown) {
     text.includes("ECONNREFUSED");
 
   if (isDbError) {
+    const detail =
+      err instanceof Error ? err.message.split("\n")[0].slice(0, 240) : text;
     return {
       status: 500,
-      body: { error: msg.api.dbConnectionFailed, code: "DB_CONNECTION" },
+      body: {
+        error: msg.api.dbConnectionFailed,
+        code: "DB_CONNECTION",
+        detail,
+      },
     };
   }
 
