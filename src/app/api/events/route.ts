@@ -1,0 +1,95 @@
+import { NextResponse } from "next/server";
+import { getAdminStoreId } from "@/lib/auth";
+import { connectDB } from "@/lib/db";
+import { slugify } from "@/lib/event-utils";
+import { msg } from "@/lib/messages";
+import { Event } from "@/models/Event";
+import { Store } from "@/models/Store";
+
+export async function GET() {
+  const storeId = await getAdminStoreId();
+  if (!storeId) {
+    return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
+  }
+
+  await connectDB();
+
+  const events = await Event.find({ storeId })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+
+  const openEvent = events.find((e) => e.status === "open") ?? null;
+
+  return NextResponse.json({ events, openEvent });
+}
+
+export async function POST(request: Request) {
+  const storeId = await getAdminStoreId();
+  if (!storeId) {
+    return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
+  }
+
+  try {
+    const body = (await request.json()) as {
+      name?: string;
+      type?: "cup" | "challenge" | "local";
+      startsAt?: string;
+      decklistDeadlineAt?: string;
+      slug?: string;
+    };
+
+    const { name, type, startsAt, decklistDeadlineAt, slug: customSlug } =
+      body;
+
+    if (!name || !startsAt || !decklistDeadlineAt) {
+      return NextResponse.json(
+        { error: msg.api.nameDatesRequired },
+        { status: 400 }
+      );
+    }
+
+    const starts = new Date(startsAt);
+    const deadline = new Date(decklistDeadlineAt);
+
+    if (deadline >= starts) {
+      return NextResponse.json(
+        { error: msg.api.deadlineBeforeStart },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    const store = await Store.findById(storeId);
+    if (!store) {
+      return NextResponse.json({ error: msg.api.storeNotFound }, { status: 404 });
+    }
+
+    await Event.updateMany(
+      { storeId, status: "open" },
+      { $set: { status: "closed" } }
+    );
+
+    let slug = customSlug ? slugify(customSlug) : slugify(name);
+    const existing = await Event.findOne({ slug });
+    if (existing) {
+      slug = `${slug}-${Date.now().toString(36)}`;
+    }
+
+    const event = await Event.create({
+      storeId,
+      name,
+      type: type ?? "challenge",
+      slug,
+      startsAt: starts,
+      decklistDeadlineAt: deadline,
+      status: "open",
+    });
+
+    return NextResponse.json({ event }, { status: 201 });
+  } catch (err) {
+    console.error("Create event error:", err);
+    return NextResponse.json({ error: msg.api.createEventFailed }, { status: 500 });
+  }
+}
