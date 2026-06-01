@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { BrandHeader } from "@/components/BrandHeader";
+import { Logo } from "@/components/Logo";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 
@@ -30,15 +30,10 @@ export default async function HomePage() {
         {activeEvent ? (
           <section className="sub-panel relative overflow-hidden rounded-2xl p-6">
             <div
-              className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 opacity-20"
+              className="pointer-events-none absolute -right-2 top-2 h-24 w-24 opacity-20"
               aria-hidden
             >
-              <Image
-                src="/substitute-hero.png"
-                alt=""
-                fill
-                className="object-contain"
-              />
+              <Logo size="lg" showName={false} href={null} />
             </div>
             <p className="text-xs font-semibold uppercase tracking-wide text-sky-400">
               Torneo activo
