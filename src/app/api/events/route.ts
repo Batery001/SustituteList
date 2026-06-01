@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
-import { parseDateTimeLocalInTimeZone, slugify } from "@/lib/event-utils";
+import {
+  getStoreTimezone,
+  parseDateTimeLocalInTimeZone,
+  slugify,
+} from "@/lib/event-utils";
+import { syncStoreTimezone } from "@/lib/sync-store-timezone";
 import { msg } from "@/lib/messages";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
@@ -21,11 +26,20 @@ export async function GET() {
 
   const openEvent = events.find((e) => e.status === "open") ?? null;
   const store = await Store.findById(storeId).lean();
+  const storeTimezone = getStoreTimezone(store?.timezone);
+  if (store && store.timezone !== storeTimezone) {
+    await syncStoreTimezone(storeId);
+  }
 
   return NextResponse.json({
     events,
     openEvent,
-    storeTimezone: store?.timezone ?? "America/Santiago",
+    storeTimezone,
+    serverNowInStoreTz: new Intl.DateTimeFormat("es-CL", {
+      dateStyle: "medium",
+      timeStyle: "medium",
+      timeZone: storeTimezone,
+    }).format(new Date()),
   });
 }
 
@@ -42,10 +56,18 @@ export async function POST(request: Request) {
       startsAt?: string;
       decklistDeadlineAt?: string;
       slug?: string;
+      /** Zona del navegador al crear (ej. America/Santiago). */
+      clientTimeZone?: string;
     };
 
-    const { name, type, startsAt, decklistDeadlineAt, slug: customSlug } =
-      body;
+    const {
+      name,
+      type,
+      startsAt,
+      decklistDeadlineAt,
+      slug: customSlug,
+      clientTimeZone,
+    } = body;
 
     if (!name || !startsAt || !decklistDeadlineAt) {
       return NextResponse.json(
@@ -61,7 +83,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: msg.api.storeNotFound }, { status: 404 });
     }
 
-    const tz = store.timezone ?? "America/Santiago";
+    await syncStoreTimezone(storeId);
+    const tz = clientTimeZone?.trim() || getStoreTimezone(store.timezone);
     const starts = parseDateTimeLocalInTimeZone(startsAt, tz);
     const deadline = parseDateTimeLocalInTimeZone(decklistDeadlineAt, tz);
 

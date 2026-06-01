@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
+import { getStoreTimezone } from "@/lib/event-utils";
 import { Store } from "@/models/Store";
 
 export async function ensureStore(): Promise<string> {
@@ -8,7 +9,7 @@ export async function ensureStore(): Promise<string> {
   const email = process.env.ADMIN_EMAIL?.toLowerCase().trim();
   const password = process.env.ADMIN_PASSWORD;
   const name = process.env.STORE_NAME ?? "Substitute List League";
-  const timezone = process.env.STORE_TIMEZONE ?? "America/Santiago";
+  const timezone = getStoreTimezone();
 
   if (!email || !password) {
     throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set");

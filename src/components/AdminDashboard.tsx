@@ -44,6 +44,11 @@ export function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [storeTimezone, setStoreTimezone] = useState("America/Santiago");
+  const [serverClock, setServerClock] = useState<string | null>(null);
+  const browserTimeZone =
+    typeof Intl !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone
+      : "America/Santiago";
 
   const [form, setForm] = useState({
     name: "",
@@ -62,6 +67,7 @@ export function AdminDashboard() {
     setEvents(data.events ?? []);
     setOpenEvent(data.openEvent ?? null);
     setStoreTimezone(data.storeTimezone ?? "America/Santiago");
+    setServerClock(data.serverNowInStoreTz ?? null);
 
     if (data.openEvent?._id) {
       const subRes = await fetch(
@@ -94,7 +100,10 @@ export function AdminDashboard() {
     const res = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        clientTimeZone: browserTimeZone,
+      }),
     });
 
     const data = await res.json();
@@ -162,8 +171,15 @@ export function AdminDashboard() {
         <h3 className="font-semibold">Crear torneo</h3>
         <p className="mt-1 text-xs text-zinc-500">
           Al publicar uno nuevo, el torneo abierto anterior se cierra solo. Las
-          horas se interpretan en la zona de la tienda (STORE_TIMEZONE, ej.
-          Chile).
+          horas del formulario son las de tu dispositivo (
+          <span className="text-zinc-400">{browserTimeZone}</span>
+          {serverClock && (
+            <>
+              ). En el servidor ahora son:{" "}
+              <span className="text-amber-400/90">{serverClock}</span>
+            </>
+          )}
+          {!serverClock && ")."}
         </p>
         <form onSubmit={handleCreate} className="mt-4 space-y-3">
           <input

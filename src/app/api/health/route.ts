@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
+import { formatNowInTimeZone, getStoreTimezone } from "@/lib/event-utils";
 
 export const runtime = "nodejs";
 
 /** Diagnóstico rápido (no expone secretos). */
 export async function GET() {
+  const storeTimezone = getStoreTimezone();
   const checks = {
     MONGODB_URI: Boolean(process.env.MONGODB_URI),
     SESSION_SECRET: Boolean(process.env.SESSION_SECRET),
@@ -12,6 +14,8 @@ export async function GET() {
     ADMIN_PASSWORD: Boolean(process.env.ADMIN_PASSWORD),
     STORE_NAME: Boolean(process.env.STORE_NAME),
     STORE_TIMEZONE: Boolean(process.env.STORE_TIMEZONE),
+    storeTimezone,
+    serverNowInStoreTz: formatNowInTimeZone(storeTimezone),
     adminEmailHint: process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null,
     database: "unknown" as "ok" | "error" | "unknown",
     databaseError: null as string | null,

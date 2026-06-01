@@ -1,4 +1,12 @@
-/** Convierte "2026-06-01T12:00" (sin Z) a instante UTC usando la zona de la tienda. */
+/** Zona horaria activa: Vercel (STORE_TIMEZONE) manda sobre la guardada en BD. */
+export function getStoreTimezone(dbTimezone?: string | null): string {
+  const fromEnv = process.env.STORE_TIMEZONE?.trim();
+  if (fromEnv) return fromEnv;
+  if (dbTimezone?.trim()) return dbTimezone.trim();
+  return "America/Santiago";
+}
+
+/** Convierte "2026-06-01T12:00" (sin Z) a UTC interpretándolo como hora local en `timeZone`. */
 export function parseDateTimeLocalInTimeZone(
   localDateTime: string,
   timeZone: string
@@ -25,7 +33,7 @@ export function parseDateTimeLocalInTimeZone(
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   });
 
   function wallTimeToUtcParts(utcMs: number) {
@@ -34,17 +42,18 @@ export function parseDateTimeLocalInTimeZone(
     for (const p of parts) {
       if (p.type !== "literal") map[p.type] = p.value;
     }
+    const h = Number(map.hour);
     return {
       year: Number(map.year),
       month: Number(map.month),
       day: Number(map.day),
-      hour: Number(map.hour),
+      hour: h === 24 ? 0 : h,
       minute: Number(map.minute),
     };
   }
 
   let utcMs = targetUtc;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 5; i++) {
     const wall = wallTimeToUtcParts(utcMs);
     const wallAsUtc = Date.UTC(
       wall.year,
@@ -94,12 +103,15 @@ export function formatNowInTimeZone(timeZone: string): string {
 }
 
 export function getTimezoneLabel(timeZone: string): string {
+  if (timeZone === "America/Santiago") return "Chile";
   try {
     const parts = new Intl.DateTimeFormat("es-CL", {
       timeZone,
       timeZoneName: "short",
     }).formatToParts(new Date());
-    return parts.find((p) => p.type === "timeZoneName")?.value ?? timeZone;
+    const short =
+      parts.find((p) => p.type === "timeZoneName")?.value ?? timeZone;
+    return `${short}`;
   } catch {
     return timeZone;
   }

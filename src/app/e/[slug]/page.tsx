@@ -3,7 +3,13 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { EventTimePanel } from "@/components/EventTimePanel";
 import { connectDB } from "@/lib/db";
-import { formatDeadline, formatEventType, isDeadlinePassed } from "@/lib/event-utils";
+import {
+  formatDeadline,
+  formatEventType,
+  getStoreTimezone,
+  isDeadlinePassed,
+} from "@/lib/event-utils";
+import { syncStoreTimezone } from "@/lib/sync-store-timezone";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -30,7 +36,8 @@ export default async function EventPage({
   if (!event) notFound();
 
   const store = await Store.findById(event.storeId).lean();
-  const timezone = store?.timezone ?? "America/Santiago";
+  if (store) await syncStoreTimezone(store._id.toString());
+  const timezone = getStoreTimezone(store?.timezone);
   const deadline = new Date(event.decklistDeadlineAt);
   const deadlinePassed = isDeadlinePassed(deadline);
   const canSubmit = event.status === "open" && !deadlinePassed;

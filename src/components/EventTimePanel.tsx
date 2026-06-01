@@ -37,7 +37,11 @@ export function EventTimePanel({
         <p className="mt-2">
           <span className="text-zinc-300">Hora límite:</span>{" "}
           <span className="text-zinc-200">{deadlineLabel}</span>
-          <span className="text-zinc-500"> ({tzLabel})</span>
+          <span className="text-zinc-500">
+            {" "}
+            (zona: {tzLabel}
+            {timeZone !== tzLabel ? ` · ${timeZone}` : ""})
+          </span>
         </p>
 
         <DeadlineCountdown deadlineIso={deadlineIso} closed={!canSubmit} />
