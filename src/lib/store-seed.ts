@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { getStoreTimezone, slugify } from "@/lib/event-utils";
+import { applyTransbankEnvToStore } from "@/lib/sync-transbank-env";
 import { Store } from "@/models/Store";
 
 export async function ensureStore(): Promise<string> {
@@ -23,6 +24,8 @@ export async function ensureStore(): Promise<string> {
     const taken = await Store.findOne({ slug });
     if (taken) slug = `${slug}-${Date.now().toString(36)}`;
     store = await Store.create({ email, passwordHash, name, timezone, slug });
+    applyTransbankEnvToStore(store);
+    if (store.isModified()) await store.save();
     return store._id.toString();
   }
 
@@ -41,6 +44,8 @@ export async function ensureStore(): Promise<string> {
 
   if (store.name !== name) store.name = name;
   if (store.timezone !== timezone) store.timezone = timezone;
+
+  applyTransbankEnvToStore(store);
 
   if (store.isModified()) {
     await store.save();

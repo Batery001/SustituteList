@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { formatNowInTimeZone, getStoreTimezone } from "@/lib/event-utils";
+import { transbankEnvStatus } from "@/lib/sync-transbank-env";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,8 @@ export async function GET() {
     storeTimezone,
     serverNowInStoreTz: formatNowInTimeZone(storeTimezone),
     adminEmailHint: process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null,
+    transbank: transbankEnvStatus(),
+    NEXT_PUBLIC_APP_URL: Boolean(process.env.NEXT_PUBLIC_APP_URL),
     database: "unknown" as "ok" | "error" | "unknown",
     databaseError: null as string | null,
   };

@@ -24,6 +24,7 @@ export function StoreProfileForm() {
     transbankEnvironment: "integration" as "integration" | "production",
   });
   const [hasTransbankApiKey, setHasTransbankApiKey] = useState(false);
+  const [webpayReady, setWebpayReady] = useState(false);
 
   useEffect(() => {
     fetch("/api/store/profile")
@@ -35,6 +36,7 @@ export function StoreProfileForm() {
             transbankApiKey: "",
           });
           setHasTransbankApiKey(data.store.hasTransbankApiKey);
+          setWebpayReady(data.store.webpayReady ?? false);
         }
         setLoading(false);
       });
@@ -116,7 +118,12 @@ export function StoreProfileForm() {
 
       <fieldset className="sub-panel space-y-3 rounded-xl p-4">
         <legend className="text-sm font-semibold text-sky-200">
-          Transbank Webpay Plus
+          Transbank Webpay Plus{" "}
+          {webpayReady ? (
+            <span className="text-emerald-400">· activo</span>
+          ) : (
+            <span className="text-amber-400">· falta configurar</span>
+          )}
         </legend>
         <label className="flex items-center gap-2 text-sm text-sky-200/80">
           <input

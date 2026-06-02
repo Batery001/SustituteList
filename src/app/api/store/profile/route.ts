@@ -3,6 +3,8 @@ import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { slugify } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
+import { applyTransbankEnvToStore } from "@/lib/sync-transbank-env";
+import { isTransbankConfigured } from "@/lib/transbank";
 import { Store } from "@/models/Store";
 
 export async function GET() {
@@ -12,10 +14,13 @@ export async function GET() {
   }
 
   await connectDB();
-  const store = await Store.findById(storeId).lean();
+  const store = await Store.findById(storeId);
   if (!store) {
     return NextResponse.json({ error: msg.api.storeNotFound }, { status: 404 });
   }
+
+  applyTransbankEnvToStore(store);
+  if (store.isModified()) await store.save();
 
   return NextResponse.json({
     store: {
@@ -35,6 +40,7 @@ export async function GET() {
           ? "production"
           : "integration",
       hasTransbankApiKey: Boolean(store.transbankApiKey?.trim()),
+      webpayReady: isTransbankConfigured(store),
     },
   });
 }

@@ -20,6 +20,7 @@ export function OnlinePaymentPanel({
   storeCity,
   storePhone,
   onlinePaymentsAvailable,
+  onlinePaymentsEnabled = true,
   onRefresh,
 }: {
   registrationAccessToken: string;
@@ -28,12 +29,17 @@ export function OnlinePaymentPanel({
   storeAddress?: string;
   storeCity?: string;
   storePhone?: string;
+  /** Transbank configurado (código + API Key en tienda o Vercel). */
   onlinePaymentsAvailable: boolean;
+  onlinePaymentsEnabled?: boolean;
   onRefresh?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const showWebpay =
+    entryFeeCents > 0 && onlinePaymentsEnabled !== false;
 
   async function payOnline() {
     setLoading(true);
@@ -80,19 +86,28 @@ export function OnlinePaymentPanel({
         </p>
       </div>
 
-      {onlinePaymentsAvailable && (
+      {showWebpay && (
         <div className="space-y-2">
+          {!onlinePaymentsAvailable && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-950/40 p-3 text-xs text-amber-200">
+              El pago online aún no está activado en esta tienda. Puedes pagar
+              en local o pedir al staff que configure Webpay en el panel (
+              <span className="font-mono">Admin → Perfil tienda</span>).
+            </p>
+          )}
           <Button
             type="button"
             onClick={payOnline}
             disabled={loading}
             className="w-full"
           >
-            {loading ? "Conectando con Webpay…" : "Pagar con Transbank Webpay"}
+            {loading
+              ? "Conectando con Webpay…"
+              : "Pagar con Transbank Webpay"}
           </Button>
           <p className="text-xs text-sky-100/40">
-            Tarjetas de crédito y débito chilenas. Serás redirigido al checkout
-            seguro de Transbank.
+            Tarjetas de crédito y débito. Te llevamos al checkout seguro de
+            Transbank.
           </p>
         </div>
       )}
