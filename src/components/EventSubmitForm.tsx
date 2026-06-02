@@ -11,16 +11,21 @@ interface EventSubmitFormProps {
   eventSlug: string;
   canSubmit: boolean;
   deadlineLabel: string;
+  registrationAccessToken?: string;
+  playerPreview?: { playerName: string; popId: string; division: string };
 }
 
 export function EventSubmitForm({
   eventSlug,
   canSubmit,
   deadlineLabel,
+  registrationAccessToken,
+  playerPreview,
 }: EventSubmitFormProps) {
   const router = useRouter();
-  const [playerName, setPlayerName] = useState("");
-  const [popId, setPopId] = useState("");
+  const deckOnly = Boolean(registrationAccessToken);
+  const [playerName, setPlayerName] = useState(playerPreview?.playerName ?? "");
+  const [popId, setPopId] = useState(playerPreview?.popId ?? "");
   const [birthDate, setBirthDate] = useState("");
   const [rawText, setRawText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,13 +47,18 @@ export function EventSubmitForm({
       const res = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventSlug,
-          playerName,
-          popId,
-          birthDate,
-          rawText,
-        }),
+        body: JSON.stringify(
+          deckOnly
+            ? { eventSlug, rawText, registrationAccessToken }
+            : {
+                eventSlug,
+                playerName,
+                popId,
+                birthDate,
+                rawText,
+                registrationAccessToken,
+              }
+        ),
       });
 
       const data = await res.json();
@@ -60,6 +70,14 @@ export function EventSubmitForm({
       }
 
       if (!res.ok) {
+        if (data.code === "PAYMENT_REQUIRED" && data.accessToken) {
+          window.location.href = `/e/${eventSlug}/mi-inscripcion/${data.accessToken}`;
+          return;
+        }
+        if (data.code === "REGISTRATION_REQUIRED") {
+          setError(data.error + " Inscríbete primero en el paso 1.");
+          return;
+        }
         if (data.validation) {
           setError(getValidationErrors(data.validation).join(" "));
         } else {
@@ -90,50 +108,59 @@ export function EventSubmitForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-sky-200/80">
-            Nombre completo
-          </label>
-          <input
-            type="text"
-            required
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            className="sub-input px-3 py-3"
-          />
+      {!deckOnly && (
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-sky-200/80">
+              Nombre completo
+            </label>
+            <input
+              type="text"
+              required
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="sub-input px-3 py-3"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-sky-200/80">
+              Pop ID (Player ID)
+            </label>
+            <input
+              type="text"
+              required
+              value={popId}
+              onChange={(e) => setPopId(e.target.value)}
+              placeholder="1234567890"
+              className="sub-input px-3 py-3"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-sky-200/80">
+              Fecha de nacimiento
+            </label>
+            <input
+              type="date"
+              required
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              className="sub-input px-3 py-3"
+            />
+            {division && (
+              <p className="mt-1 text-sm text-sky-400">
+                División: {formatDivision(division)}
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-sky-200/80">
-            Pop ID (Player ID)
-          </label>
-          <input
-            type="text"
-            required
-            value={popId}
-            onChange={(e) => setPopId(e.target.value)}
-            placeholder="1234567890"
-            className="sub-input px-3 py-3"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-sky-200/80">
-            Fecha de nacimiento
-          </label>
-          <input
-            type="date"
-            required
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            className="sub-input px-3 py-3"
-          />
-          {division && (
-            <p className="mt-1 text-sm text-sky-400">
-              División: {formatDivision(division)}
-            </p>
-          )}
-        </div>
-      </div>
+      )}
+
+      {deckOnly && playerPreview && (
+        <p className="text-sm text-sky-100/60">
+          {playerPreview.playerName} · Pop {playerPreview.popId} ·{" "}
+          {formatDivision(playerPreview.division as "master")}
+        </p>
+      )}
 
       <DecklistTextarea value={rawText} onChange={setRawText} />
 

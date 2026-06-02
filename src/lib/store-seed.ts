@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
-import { getStoreTimezone } from "@/lib/event-utils";
+import { getStoreTimezone, slugify } from "@/lib/event-utils";
 import { Store } from "@/models/Store";
 
 export async function ensureStore(): Promise<string> {
@@ -19,8 +19,18 @@ export async function ensureStore(): Promise<string> {
 
   if (!store) {
     const passwordHash = await bcrypt.hash(password, 12);
-    store = await Store.create({ email, passwordHash, name, timezone });
+    let slug = slugify(name);
+    const taken = await Store.findOne({ slug });
+    if (taken) slug = `${slug}-${Date.now().toString(36)}`;
+    store = await Store.create({ email, passwordHash, name, timezone, slug });
     return store._id.toString();
+  }
+
+  if (!store.slug) {
+    let slug = slugify(store.name);
+    const taken = await Store.findOne({ slug, _id: { $ne: store._id } });
+    if (taken) slug = `${slug}-${store._id.toString().slice(-6)}`;
+    store.slug = slug;
   }
 
   // Si cambiaste ADMIN_PASSWORD en Vercel, actualiza el hash en la BD

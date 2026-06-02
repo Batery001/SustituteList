@@ -34,6 +34,23 @@ export const msg = {
     deadlineBeforeStart:
       "La hora límite de listas debe ser anterior al inicio del torneo",
     storeNotFound: "Tienda no encontrada",
+    playerEmailPasswordRequired: "Correo y contraseña son obligatorios",
+    playerRegisterFailed: "No se pudo crear la cuenta",
+    playerLoginFailed: "Credenciales incorrectas",
+    playerNotFound: "Cuenta no encontrada",
+    duplicateEmail: "Ya existe una cuenta con este correo",
+    duplicatePopIdAccount: "Ya existe una cuenta con este Pop ID",
+    registrationRequired: "Debes inscribirte al torneo antes de enviar la lista",
+    paymentRequired:
+      "Debes pagar la inscripción en tienda antes de registrar tu lista",
+    duplicateRegistration:
+      "Ya estás inscrito en este torneo. Usa tu enlace personal.",
+    registrationNotFound: "Inscripción no encontrada",
+    registrationClosed: "Las inscripciones están cerradas para este torneo",
+    markPaidFailed: "No se pudo marcar como pagado",
+    storeSlugTaken: "Ese identificador de tienda ya está en uso",
+    storeRegisterFailed: "No se pudo registrar la tienda",
+    profileUpdateFailed: "No se pudo actualizar el perfil",
   },
   parser: {
     invalidQty: (line: string) => `Cantidad no válida en la línea: ${line}`,

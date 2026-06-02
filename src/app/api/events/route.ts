@@ -56,6 +56,7 @@ export async function POST(request: Request) {
       startsAt?: string;
       decklistDeadlineAt?: string;
       slug?: string;
+      entryFeeCents?: number;
       /** Zona del navegador al crear (ej. America/Santiago). */
       clientTimeZone?: string;
     };
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       decklistDeadlineAt,
       slug: customSlug,
       clientTimeZone,
+      entryFeeCents,
     } = body;
 
     if (!name || !startsAt || !decklistDeadlineAt) {
@@ -113,6 +115,11 @@ export async function POST(request: Request) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
+    const fee =
+      typeof entryFeeCents === "number"
+        ? Math.max(0, Math.round(entryFeeCents))
+        : store.defaultEntryFeeCents ?? 0;
+
     const event = await Event.create({
       storeId,
       name,
@@ -121,6 +128,7 @@ export async function POST(request: Request) {
       startsAt: starts,
       decklistDeadlineAt: deadline,
       status: "open",
+      entryFeeCents: fee,
     });
 
     return NextResponse.json({ event }, { status: 201 });

@@ -45,7 +45,7 @@ export default async function HomePage() {
               href={`/e/${activeEvent.slug}`}
               className="sub-btn-primary mt-4 inline-flex w-full items-center justify-center rounded-xl py-3 text-sm"
             >
-              Enviar mi lista
+              Inscribirme al torneo
             </Link>
           </section>
         ) : (
@@ -60,15 +60,28 @@ export default async function HomePage() {
         <section className="space-y-3 text-sm text-sky-100/50">
           <h3 className="font-semibold text-sky-100/90">Para jugadores</h3>
           <ul className="list-inside list-disc space-y-1">
-            <li>Pega tu lista desde Pokémon TCG Live (formato en inglés)</li>
-            <li>Validación en vivo de 60 cartas</li>
+            <li>Inscríbete → paga en tienda → registra tu lista</li>
+            <li>Lista en inglés desde Pokémon TCG Live (60 cartas)</li>
             <li>Edita hasta la hora límite con tu enlace personal</li>
           </ul>
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            <Link href="/jugador/login" className="sub-link text-sm underline">
+              Iniciar sesión
+            </Link>
+            <Link href="/jugador/registro" className="sub-link text-sm underline">
+              Crear cuenta
+            </Link>
+          </div>
         </section>
 
-        <Link href="/admin/login" className="sub-link text-center text-sm">
-          Acceso tienda / administración
-        </Link>
+        <div className="flex flex-col gap-2 text-center text-sm">
+          <Link href="/admin/login" className="sub-link">
+            Acceso tienda
+          </Link>
+          <Link href="/tienda/registro" className="text-sky-100/40 underline">
+            Registrar nueva tienda
+          </Link>
+        </div>
       </main>
     </div>
   );

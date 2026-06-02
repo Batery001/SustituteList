@@ -27,6 +27,7 @@ const EventSchema = new Schema(
       type: [String],
       default: ["G", "H"],
     },
+    entryFeeCents: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

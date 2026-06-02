@@ -29,6 +29,17 @@ interface Submission {
   editToken: string;
 }
 
+interface RegistrationRow {
+  _id: string;
+  playerName: string;
+  popId: string;
+  division: Division;
+  paymentStatus: string;
+  hasDecklist: boolean;
+  deckEditToken?: string;
+  accessToken: string;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   open: "abierto",
   closed: "cerrado",
@@ -40,6 +51,7 @@ export function AdminDashboard() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [openEvent, setOpenEvent] = useState<EventItem | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -55,7 +67,15 @@ export function AdminDashboard() {
     type: "challenge" as "cup" | "challenge" | "local",
     startsAt: "",
     decklistDeadlineAt: "",
+    entryFeeCents: 0,
   });
+
+  async function markPaid(registrationId: string) {
+    const res = await fetch(`/api/registrations/${registrationId}/pay`, {
+      method: "POST",
+    });
+    if (res.ok) await load();
+  }
 
   const load = useCallback(async () => {
     const res = await fetch("/api/events");
@@ -70,13 +90,17 @@ export function AdminDashboard() {
     setServerClock(data.serverNowInStoreTz ?? null);
 
     if (data.openEvent?._id) {
-      const subRes = await fetch(
-        `/api/submissions?eventId=${data.openEvent._id}`
-      );
+      const [subRes, regRes] = await Promise.all([
+        fetch(`/api/submissions?eventId=${data.openEvent._id}`),
+        fetch(`/api/registrations?eventId=${data.openEvent._id}`),
+      ]);
       const subData = await subRes.json();
+      const regData = await regRes.json();
       setSubmissions(subData.submissions ?? []);
+      setRegistrations(regData.registrations ?? []);
     } else {
       setSubmissions([]);
+      setRegistrations([]);
     }
     setLoading(false);
   }, [router]);
@@ -115,7 +139,13 @@ export function AdminDashboard() {
     }
 
     setMessage(`Torneo creado. Enlace jugadores: /e/${data.event.slug}`);
-    setForm({ name: "", type: "challenge", startsAt: "", decklistDeadlineAt: "" });
+    setForm({
+      name: "",
+      type: "challenge",
+      startsAt: "",
+      decklistDeadlineAt: "",
+      entryFeeCents: 0,
+    });
     await load();
   }
 
@@ -128,11 +158,19 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold">Panel</h2>
-        <Button type="button" variant="ghost" onClick={handleLogout}>
-          Cerrar sesión
-        </Button>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/perfil"
+            className="text-sm text-sky-400 underline"
+          >
+            Perfil tienda
+          </Link>
+          <Button type="button" variant="ghost" onClick={handleLogout}>
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
 
       {openEvent && (
@@ -226,12 +264,86 @@ export function AdminDashboard() {
               className="sub-input mt-1 px-3 py-2 text-sm"
             />
           </label>
+          <label className="block text-xs text-zinc-400">
+            Cuota inscripción (CLP, 0 = gratis)
+            <input
+              type="number"
+              min={0}
+              value={form.entryFeeCents}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  entryFeeCents: parseInt(e.target.value, 10) || 0,
+                })
+              }
+              className="sub-input mt-1 px-3 py-2 text-sm"
+            />
+          </label>
           <Button type="submit" disabled={creating} className="w-full">
             {creating ? "Creando…" : "Publicar torneo"}
           </Button>
         </form>
         {message && (
           <p className="mt-3 text-sm text-sky-300">{message}</p>
+        )}
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold">
+            Inscripciones ({registrations.length})
+          </h3>
+          <button
+            type="button"
+            onClick={load}
+            className="text-xs text-zinc-400 underline"
+          >
+            Actualizar
+          </button>
+        </div>
+        {registrations.length === 0 ? (
+          <p className="text-sm text-zinc-500">Aún no hay inscripciones.</p>
+        ) : (
+          <ul className="divide-y divide-zinc-800 rounded-xl border border-zinc-800">
+            {registrations.map((r) => (
+              <li
+                key={r._id}
+                className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium">{r.playerName}</p>
+                  <p className="text-xs text-zinc-500">
+                    {formatDivision(r.division)} · Pop {r.popId} ·{" "}
+                    {r.paymentStatus === "paid" ? (
+                      <span className="text-emerald-400">Pagado</span>
+                    ) : (
+                      <span className="text-amber-400">Pago pendiente</span>
+                    )}
+                    {r.hasDecklist ? " · Lista ✓" : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {r.paymentStatus !== "paid" && (
+                    <Button
+                      type="button"
+                      onClick={() => markPaid(r._id)}
+                      className="text-xs"
+                    >
+                      Marcar pagado
+                    </Button>
+                  )}
+                  {openEvent && (
+                    <Link
+                      href={`/e/${openEvent.slug}/mi-inscripcion/${r.accessToken}`}
+                      className="text-xs text-zinc-400 underline"
+                    >
+                      Ver jugador
+                    </Link>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

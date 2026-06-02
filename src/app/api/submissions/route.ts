@@ -9,6 +9,8 @@ import { msg } from "@/lib/messages";
 import { serializeValidation } from "@/lib/validation-display";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Event } from "@/models/Event";
+import { Registration } from "@/models/Registration";
+import { getPlayerId } from "@/lib/player-auth";
 
 export async function GET(request: Request) {
   const storeId = await getAdminStoreId();
@@ -54,11 +56,19 @@ export async function POST(request: Request) {
       popId?: string;
       birthDate?: string;
       rawText?: string;
+      registrationAccessToken?: string;
     };
 
-    const { eventSlug, playerName, popId, birthDate, rawText } = body;
+    const {
+      eventSlug,
+      playerName,
+      popId,
+      birthDate,
+      rawText,
+      registrationAccessToken,
+    } = body;
 
-    if (!eventSlug || !playerName || !popId || !birthDate || !rawText?.trim()) {
+    if (!eventSlug || !rawText?.trim()) {
       return NextResponse.json(
         { error: msg.api.allFieldsRequired },
         { status: 400 }
@@ -82,7 +92,48 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalizedPopId = popId.trim();
+    let registration = registrationAccessToken
+      ? await Registration.findOne({
+          eventId: event._id,
+          accessToken: registrationAccessToken,
+        })
+      : null;
+
+    if (!registration) {
+      const playerId = await getPlayerId();
+      const lookupPopId = popId?.trim();
+      if (playerId) {
+        registration = await Registration.findOne({
+          eventId: event._id,
+          playerId,
+        });
+      } else if (lookupPopId) {
+        registration = await Registration.findOne({
+          eventId: event._id,
+          popId: lookupPopId,
+        });
+      }
+    }
+
+    if (!registration) {
+      return NextResponse.json(
+        { error: msg.api.registrationRequired, code: "REGISTRATION_REQUIRED" },
+        { status: 403 }
+      );
+    }
+
+    if (registration.paymentStatus !== "paid") {
+      return NextResponse.json(
+        {
+          error: msg.api.paymentRequired,
+          code: "PAYMENT_REQUIRED",
+          accessToken: registration.accessToken,
+        },
+        { status: 403 }
+      );
+    }
+
+    const normalizedPopId = registration.popId;
     const existing = await DecklistSubmission.findOne({
       eventId: event._id,
       popId: normalizedPopId,
@@ -98,10 +149,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const birth = new Date(birthDate);
-    if (Number.isNaN(birth.getTime())) {
-      return NextResponse.json({ error: msg.api.invalidBirthDate }, { status: 400 });
-    }
+    const birth = registration.birthDate;
+    const resolvedName = registration.playerName;
 
     const parsed = parseDecklist(rawText);
     if (parsed.errors.length > 0) {
@@ -123,7 +172,8 @@ export async function POST(request: Request) {
 
     const submission = await DecklistSubmission.create({
       eventId: event._id,
-      playerName: playerName.trim(),
+      registrationId: registration._id,
+      playerName: resolvedName,
       popId: normalizedPopId,
       birthDate: birth,
       division,
@@ -136,6 +186,9 @@ export async function POST(request: Request) {
       },
       editToken,
     });
+
+    registration.decklistSubmissionId = submission._id;
+    await registration.save();
 
     return NextResponse.json(
       {

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
-import { EventSubmitForm } from "@/components/EventSubmitForm";
+import { EventRegistrationFlow } from "@/components/EventRegistrationFlow";
 import { EventTimePanel } from "@/components/EventTimePanel";
 import { connectDB } from "@/lib/db";
 import {
@@ -58,10 +58,15 @@ export default async function EventPage({
           timeZone={timezone}
           canSubmit={canSubmit}
         />
-        <EventSubmitForm
+        <EventRegistrationFlow
           eventSlug={slug}
           canSubmit={canSubmit}
           deadlineLabel={deadlineLabel}
+          entryFeeCents={event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0}
+          storeName={store?.name ?? "Tienda"}
+          storeAddress={store?.address}
+          storeCity={store?.city}
+          storePhone={store?.phone}
         />
       </main>
     </div>

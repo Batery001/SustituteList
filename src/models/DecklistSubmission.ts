@@ -28,6 +28,11 @@ const DecklistSubmissionSchema = new Schema(
       required: true,
       index: true,
     },
+    registrationId: {
+      type: Schema.Types.ObjectId,
+      ref: "Registration",
+      index: true,
+    },
     playerName: { type: String, required: true },
     popId: { type: String, required: true, trim: true },
     birthDate: { type: Date, required: true },
