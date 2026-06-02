@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BrandHeader } from "@/components/BrandHeader";
+import { PageShell } from "@/components/PageShell";
 import { Logo } from "@/components/Logo";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
@@ -24,9 +24,8 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-lg flex-col">
-      <BrandHeader />
-      <main className="flex flex-1 flex-col gap-6 px-4 py-8">
+    <PageShell area="public">
+      <div className="flex flex-col gap-6">
         {activeEvent ? (
           <section className="sub-panel relative overflow-hidden rounded-2xl p-6">
             <div
@@ -64,28 +63,12 @@ export default async function HomePage() {
             <li>Lista en inglés desde Pokémon TCG Live (60 cartas)</li>
             <li>Edita hasta la hora límite con tu enlace personal</li>
           </ul>
-          <div className="flex flex-wrap justify-center gap-3 pt-2">
-            <Link href="/jugador/login" className="sub-link text-sm underline">
-              Iniciar sesión
-            </Link>
-            <Link href="/jugador/registro" className="sub-link text-sm underline">
-              Crear cuenta
-            </Link>
-            <Link href="/jugador/mazos" className="sub-link text-sm underline">
-              Mis mazos
-            </Link>
-          </div>
+          <p className="pt-2 text-xs text-sky-100/40">
+            Usa el menú superior cuando hayas iniciado sesión: Mi cuenta, Mis
+            mazos y Perfil.
+          </p>
         </section>
-
-        <div className="flex flex-col gap-2 text-center text-sm">
-          <Link href="/admin/login" className="sub-link">
-            Acceso tienda
-          </Link>
-          <Link href="/tienda/registro" className="text-sky-100/40 underline">
-            Registrar nueva tienda
-          </Link>
-        </div>
-      </main>
-    </div>
+      </div>
+    </PageShell>
   );
 }

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BrandHeader } from "@/components/BrandHeader";
+import { PageShell } from "@/components/PageShell";
 import { Button } from "@/components/ui/Button";
 
 export default function AdminLoginPage() {
@@ -38,41 +39,48 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="mx-auto min-h-full max-w-lg">
-      <BrandHeader subtitle="Administración de tienda" />
-      <main className="px-4 py-8">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm text-sky-200/80">Correo</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="sub-input px-3 py-3"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm text-sky-200/80">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="sub-input px-3 py-3"
-            />
-          </div>
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Entrando…" : "Iniciar sesión"}
-          </Button>
-        </form>
-        <p className="mt-6 text-center text-xs text-sky-100/40">
-          Credenciales en .env.local (ADMIN_EMAIL / ADMIN_PASSWORD)
+    <PageShell subtitle="Acceso tienda" area="public">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-sky-100/55">
+          Entras al <strong className="text-rose-300/90">modo tienda</strong>{" "}
+          (torneos, inscripciones, Webpay). ¿Eres jugador?{" "}
+          <Link href="/jugador/login" className="sub-link underline">
+            Inicia sesión aquí
+          </Link>
+          .
         </p>
-      </main>
-    </div>
+        <div>
+          <label className="mb-1 block text-sm text-sky-200/80">Correo</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="sub-input w-full px-3 py-3"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm text-sky-200/80">
+            Contraseña
+          </label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="sub-input w-full px-3 py-3"
+          />
+        </div>
+        {error && <p className="text-sm text-red-400">{error}</p>}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? "Entrando…" : "Entrar al panel de tienda"}
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-sky-100/45">
+        <Link href="/" className="underline">
+          ← Volver al inicio
+        </Link>
+      </p>
+    </PageShell>
   );
 }

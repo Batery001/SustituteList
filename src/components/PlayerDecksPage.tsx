@@ -87,14 +87,6 @@ export function PlayerDecksPage() {
         </ul>
       )}
 
-      <nav className="flex flex-wrap justify-center gap-4 text-sm">
-        <Link href="/jugador/cuenta" className="text-sky-100/45 underline">
-          Mi cuenta
-        </Link>
-        <Link href="/jugador/perfil" className="text-sky-100/45 underline">
-          Perfil
-        </Link>
-      </nav>
     </div>
   );
 }

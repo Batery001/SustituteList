@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 import { formatDivision, type Division } from "@/lib/division";
 
 export function PlayerAccountPage() {
@@ -37,12 +36,6 @@ export function PlayerAccountPage() {
       });
   }, [router]);
 
-  async function logout() {
-    await fetch("/api/auth/player/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
-  }
-
   if (!player) {
     return <p className="py-8 text-center text-sky-100/50">Cargando…</p>;
   }
@@ -55,28 +48,6 @@ export function PlayerAccountPage() {
           Pop {player.popId} · {formatDivision(player.division)}
         </p>
         <p className="text-xs text-sky-100/40">{player.email}</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link
-            href="/jugador/perfil"
-            className="text-sm text-sky-400 underline"
-          >
-            Editar perfil
-          </Link>
-          <Link
-            href="/jugador/mazos"
-            className="text-sm text-sky-400 underline"
-          >
-            Mis mazos
-          </Link>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={logout}
-          className="mt-4 text-sm"
-        >
-          Cerrar sesión
-        </Button>
       </section>
 
       <section>
@@ -107,10 +78,6 @@ export function PlayerAccountPage() {
           </ul>
         )}
       </section>
-
-      <Link href="/" className="block text-center text-sm text-sky-100/45 underline">
-        Inicio
-      </Link>
     </div>
   );
 }

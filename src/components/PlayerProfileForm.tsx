@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { formatDivision, type Division } from "@/lib/division";
@@ -97,14 +96,6 @@ export function PlayerProfileForm() {
         {saving ? "Guardando…" : "Guardar perfil"}
       </Button>
 
-      <div className="flex flex-wrap justify-center gap-4 text-sm">
-        <Link href="/jugador/mazos" className="text-sky-100/45 underline">
-          Mis mazos
-        </Link>
-        <Link href="/jugador/cuenta" className="text-sky-100/45 underline">
-          Mi cuenta
-        </Link>
-      </div>
     </form>
   );
 }

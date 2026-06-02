@@ -111,11 +111,6 @@ export function AdminDashboard() {
     return () => clearInterval(interval);
   }, [load]);
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/admin/login");
-  }
-
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreating(true);
@@ -158,21 +153,6 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">Panel</h2>
-        <div className="flex gap-2">
-          <Link
-            href="/admin/perfil"
-            className="text-sm text-sky-400 underline"
-          >
-            Perfil tienda
-          </Link>
-          <Button type="button" variant="ghost" onClick={handleLogout}>
-            Cerrar sesión
-          </Button>
-        </div>
-      </div>
-
       {openEvent && (
         <section className="sub-panel flex gap-3 rounded-xl p-4">
           <div className="min-w-0 flex-1">
