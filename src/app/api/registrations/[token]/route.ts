@@ -6,6 +6,10 @@ import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
 import { Store } from "@/models/Store";
+import {
+  getMercadoPagoToken,
+  isMercadoPagoConfigured,
+} from "@/lib/mercadopago";
 
 export async function GET(
   _request: Request,
@@ -42,6 +46,11 @@ export async function GET(
   const entryFeeCents =
     event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0;
 
+  const onlinePaymentsAvailable =
+    entryFeeCents > 0 &&
+    store?.onlinePaymentsEnabled !== false &&
+    isMercadoPagoConfigured(getMercadoPagoToken(store?.mercadoPagoAccessToken));
+
   return NextResponse.json({
     registration: {
       playerName: registration.playerName,
@@ -67,5 +76,6 @@ export async function GET(
         }
       : null,
     deckEditToken,
+    onlinePaymentsAvailable,
   });
 }

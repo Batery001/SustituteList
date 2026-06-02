@@ -6,6 +6,10 @@ import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Store } from "@/models/Store";
+import {
+  getMercadoPagoToken,
+  isMercadoPagoConfigured,
+} from "@/lib/mercadopago";
 
 export async function GET(
   _request: Request,
@@ -25,6 +29,11 @@ export async function GET(
   const canSubmit = event.status === "open" && !deadlinePassed;
   const entryFeeCents =
     event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0;
+
+  const onlinePaymentsAvailable =
+    entryFeeCents > 0 &&
+    store?.onlinePaymentsEnabled !== false &&
+    isMercadoPagoConfigured(getMercadoPagoToken(store?.mercadoPagoAccessToken));
 
   const playerId = await getPlayerId();
   let myRegistration: {
@@ -77,5 +86,6 @@ export async function GET(
         }
       : { name: "League", timezone: "UTC" },
     myRegistration,
+    onlinePaymentsAvailable,
   });
 }

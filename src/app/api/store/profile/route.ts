@@ -28,6 +28,8 @@ export async function GET() {
       phone: store.phone ?? "",
       description: store.description ?? "",
       defaultEntryFeeCents: store.defaultEntryFeeCents ?? 0,
+      onlinePaymentsEnabled: store.onlinePaymentsEnabled !== false,
+      hasMercadoPago: Boolean(store.mercadoPagoAccessToken?.trim()),
     },
   });
 }
@@ -48,6 +50,8 @@ export async function PUT(request: Request) {
       phone?: string;
       description?: string;
       defaultEntryFeeCents?: number;
+      mercadoPagoAccessToken?: string;
+      onlinePaymentsEnabled?: boolean;
     };
 
     await connectDB();
@@ -64,6 +68,12 @@ export async function PUT(request: Request) {
     if (body.description !== undefined) store.description = body.description.trim();
     if (typeof body.defaultEntryFeeCents === "number") {
       store.defaultEntryFeeCents = Math.max(0, Math.round(body.defaultEntryFeeCents));
+    }
+    if (body.mercadoPagoAccessToken?.trim()) {
+      store.mercadoPagoAccessToken = body.mercadoPagoAccessToken.trim();
+    }
+    if (typeof body.onlinePaymentsEnabled === "boolean") {
+      store.onlinePaymentsEnabled = body.onlinePaymentsEnabled;
     }
 
     if (body.slug?.trim()) {

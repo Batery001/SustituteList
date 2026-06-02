@@ -10,6 +10,7 @@ import { Event } from "@/models/Event";
 import { Player } from "@/models/Player";
 import { Registration } from "@/models/Registration";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
+import { Store } from "@/models/Store";
 
 export async function GET(request: Request) {
   const storeId = await getAdminStoreId();
@@ -151,6 +152,11 @@ export async function POST(request: Request) {
     const accessToken = randomBytes(24).toString("hex");
     const division = getDivision(birth!);
 
+    const store = await Store.findById(event.storeId);
+    const entryFee =
+      event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0;
+    const isFree = entryFee <= 0;
+
     const registration = await Registration.create({
       eventId: event._id,
       playerId: playerId ? playerId : undefined,
@@ -158,7 +164,8 @@ export async function POST(request: Request) {
       popId: popId!,
       birthDate: birth!,
       division,
-      paymentStatus: "pending",
+      paymentStatus: isFree ? "paid" : "pending",
+      paidAt: isFree ? new Date() : undefined,
       accessToken,
     });
 

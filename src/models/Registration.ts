@@ -28,6 +28,8 @@ const RegistrationSchema = new Schema(
       index: true,
     },
     paidAt: { type: Date },
+    mpPreferenceId: { type: String, index: true },
+    mpPaymentId: { type: String, index: true },
     accessToken: { type: String, required: true, unique: true, index: true },
     decklistSubmissionId: {
       type: Schema.Types.ObjectId,

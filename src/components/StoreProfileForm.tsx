@@ -18,13 +18,22 @@ export function StoreProfileForm() {
     phone: "",
     description: "",
     defaultEntryFeeCents: 0,
+    onlinePaymentsEnabled: true,
+    mercadoPagoAccessToken: "",
   });
+  const [hasMercadoPago, setHasMercadoPago] = useState(false);
 
   useEffect(() => {
     fetch("/api/store/profile")
       .then((r) => r.json())
       .then((data) => {
-        if (data.store) setForm(data.store);
+        if (data.store) {
+          setForm({
+            ...data.store,
+            mercadoPagoAccessToken: "",
+          });
+          setHasMercadoPago(data.store.hasMercadoPago);
+        }
         setLoading(false);
       });
   }, []);
@@ -101,6 +110,36 @@ export function StoreProfileForm() {
         onChange={(e) => setForm({ ...form, description: e.target.value })}
         className="sub-input min-h-[80px] w-full px-3 py-2 text-sm"
       />
+      <label className="flex items-center gap-2 text-sm text-sky-200/80">
+        <input
+          type="checkbox"
+          checked={form.onlinePaymentsEnabled}
+          onChange={(e) =>
+            setForm({ ...form, onlinePaymentsEnabled: e.target.checked })
+          }
+          className="rounded"
+        />
+        Permitir pago online (Mercado Pago)
+      </label>
+      <label className="block text-xs text-zinc-400">
+        Access Token Mercado Pago{" "}
+        {hasMercadoPago && (
+          <span className="text-emerald-400">(ya configurado)</span>
+        )}
+        <input
+          type="password"
+          placeholder="APP_USR-… (dejar vacío para no cambiar)"
+          value={form.mercadoPagoAccessToken}
+          onChange={(e) =>
+            setForm({ ...form, mercadoPagoAccessToken: e.target.value })
+          }
+          className="sub-input mt-1 w-full px-3 py-2 text-sm"
+        />
+        <span className="mt-1 block text-sky-100/35">
+          También puedes usar MERCADOPAGO_ACCESS_TOKEN en Vercel para toda la
+          tienda.
+        </span>
+      </label>
       <label className="block text-xs text-zinc-400">
         Cuota por defecto (CLP, 0 = gratis)
         <input

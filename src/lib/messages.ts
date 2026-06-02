@@ -51,6 +51,13 @@ export const msg = {
     storeSlugTaken: "Ese identificador de tienda ya está en uso",
     storeRegisterFailed: "No se pudo registrar la tienda",
     profileUpdateFailed: "No se pudo actualizar el perfil",
+    mercadoPagoNotConfigured:
+      "Pago online no configurado. La tienda debe añadir MERCADOPAGO_ACCESS_TOKEN en Vercel.",
+    onlinePaymentsDisabled: "La tienda no tiene activado el pago online",
+    paymentCreateFailed: "No se pudo iniciar el pago online",
+    deckNameAndListRequired: "Nombre del mazo y lista son obligatorios",
+    deckNotFound: "Mazo no encontrado",
+    deckSaveFailed: "No se pudo guardar el mazo",
   },
   parser: {
     invalidQty: (line: string) => `Cantidad no válida en la línea: ${line}`,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { Button } from "@/components/ui/Button";
@@ -31,6 +32,27 @@ export function EventSubmitForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingToken, setExistingToken] = useState<string | null>(null);
+  const [savedDecks, setSavedDecks] = useState<
+    { _id: string; name: string; rawText?: string }[]
+  >([]);
+
+  useEffect(() => {
+    if (!deckOnly) return;
+    fetch("/api/player/decks")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.decks?.length) {
+          setSavedDecks(data.decks);
+        }
+      })
+      .catch(() => {});
+  }, [deckOnly]);
+
+  async function loadDeckContent(deckId: string) {
+    const res = await fetch(`/api/player/decks/${deckId}`);
+    const data = await res.json();
+    if (data.deck?.rawText) setRawText(data.deck.rawText);
+  }
 
   const division =
     birthDate && !Number.isNaN(new Date(birthDate).getTime())
@@ -160,6 +182,34 @@ export function EventSubmitForm({
           {playerPreview.playerName} · Pop {playerPreview.popId} ·{" "}
           {formatDivision(playerPreview.division as "master")}
         </p>
+      )}
+
+      {savedDecks.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-sky-200/80">
+            Cargar desde mis mazos
+          </label>
+          <select
+            className="sub-input w-full px-3 py-2 text-sm"
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) loadDeckContent(e.target.value);
+            }}
+          >
+            <option value="">Seleccionar mazo guardado…</option>
+            {savedDecks.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <Link
+            href="/jugador/mazos"
+            className="mt-1 inline-block text-xs text-sky-400 underline"
+          >
+            Gestionar mis mazos
+          </Link>
+        </div>
       )}
 
       <DecklistTextarea value={rawText} onChange={setRawText} />

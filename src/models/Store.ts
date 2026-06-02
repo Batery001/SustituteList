@@ -12,6 +12,8 @@ const StoreSchema = new Schema(
     phone: { type: String, default: "" },
     description: { type: String, default: "" },
     defaultEntryFeeCents: { type: Number, default: 0 },
+    mercadoPagoAccessToken: { type: String, default: "" },
+    onlinePaymentsEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

@@ -55,6 +55,20 @@ export function PlayerAccountPage() {
           Pop {player.popId} · {formatDivision(player.division)}
         </p>
         <p className="text-xs text-sky-100/40">{player.email}</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/jugador/perfil"
+            className="text-sm text-sky-400 underline"
+          >
+            Editar perfil
+          </Link>
+          <Link
+            href="/jugador/mazos"
+            className="text-sm text-sky-400 underline"
+          >
+            Mis mazos
+          </Link>
+        </div>
         <Button
           type="button"
           variant="ghost"

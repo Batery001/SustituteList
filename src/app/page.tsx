@@ -71,6 +71,9 @@ export default async function HomePage() {
             <Link href="/jugador/registro" className="sub-link text-sm underline">
               Crear cuenta
             </Link>
+            <Link href="/jugador/mazos" className="sub-link text-sm underline">
+              Mis mazos
+            </Link>
           </div>
         </section>
 

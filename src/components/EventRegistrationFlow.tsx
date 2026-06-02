@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
+import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
 import { Button } from "@/components/ui/Button";
 import { formatDivision } from "@/lib/division";
 
@@ -58,6 +59,7 @@ export function EventRegistrationFlow({
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [existingToken, setExistingToken] = useState<string | null>(null);
+  const [onlinePaymentsAvailable, setOnlinePaymentsAvailable] = useState(false);
 
   const load = useCallback(async () => {
     const [meRes, evRes] = await Promise.all([
@@ -75,6 +77,7 @@ export function EventRegistrationFlow({
       });
     }
     setRegistration(evData.myRegistration ?? null);
+    setOnlinePaymentsAvailable(evData.onlinePaymentsAvailable ?? false);
     setLoading(false);
   }, [eventSlug]);
 
@@ -267,39 +270,25 @@ export function EventRegistrationFlow({
         </section>
       )}
 
-      {step === "pay" && registration && (
-        <section className="sub-panel-accent rounded-xl p-5">
-          <h2 className="font-bold text-sky-50">Pago pendiente</h2>
-          <p className="mt-2 text-sm text-sky-100/70">
-            Tu inscripción está registrada. Paga{" "}
-            <strong>{formatFee(entryFeeCents)}</strong> en{" "}
-            <strong>{storeName}</strong> para poder enviar tu lista.
-          </p>
-          {(storeAddress || storeCity) && (
-            <p className="mt-2 text-sm text-sky-100/50">
-              {[storeAddress, storeCity].filter(Boolean).join(", ")}
-              {storePhone ? ` · ${storePhone}` : ""}
-            </p>
-          )}
-          <p className="mt-4 text-xs text-sky-100/40">
-            El staff marcará tu pago en el panel. Esta página se actualiza sola.
-          </p>
-          <div className="mt-4 flex flex-col gap-2">
-            <Link
-              href={`/e/${eventSlug}/mi-inscripcion/${registration.accessToken}`}
-              className="sub-btn-primary rounded-xl py-3 text-center text-sm"
-            >
-              Ver estado de mi inscripción
-            </Link>
-            <button
-              type="button"
-              onClick={load}
-              className="text-xs text-sky-400 underline"
-            >
-              Actualizar estado
-            </button>
-          </div>
-        </section>
+      {step === "pay" && registration && entryFeeCents > 0 && (
+        <>
+          <OnlinePaymentPanel
+            registrationAccessToken={registration.accessToken}
+            entryFeeCents={entryFeeCents}
+            storeName={storeName}
+            storeAddress={storeAddress}
+            storeCity={storeCity}
+            storePhone={storePhone}
+            onlinePaymentsAvailable={onlinePaymentsAvailable}
+            onRefresh={load}
+          />
+          <Link
+            href={`/e/${eventSlug}/mi-inscripcion/${registration.accessToken}`}
+            className="block text-center text-sm text-sky-100/45 underline"
+          >
+            Abrir página de mi inscripción →
+          </Link>
+        </>
       )}
 
       {step === "decklist" && registration && (

@@ -3,16 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
+import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
 import { formatDivision, type Division } from "@/lib/division";
-
-function formatFee(pesos: number): string {
-  if (pesos <= 0) return "Gratis";
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(pesos);
-}
 
 export function RegistrationStatusPage({
   eventSlug,
@@ -37,8 +29,10 @@ export function RegistrationStatusPage({
     };
     store: { name: string; address?: string; city?: string; phone?: string } | null;
     deckEditToken: string | null;
+    onlinePaymentsAvailable: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/registrations/${accessToken}`);
@@ -52,6 +46,14 @@ export function RegistrationStatusPage({
     const t = setInterval(load, 10000);
     return () => clearInterval(t);
   }, [load]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search).get("payment");
+    if (q === "success") setPaymentNotice("Pago recibido. Si no ves el cambio, pulsa Actualizar.");
+    if (q === "pending") setPaymentNotice("Pago pendiente de confirmación.");
+    if (q === "failure") setPaymentNotice("El pago no se completó. Puedes intentar de nuevo.");
+  }, []);
 
   if (loading) {
     return <p className="py-8 text-center text-sky-100/50">Cargando…</p>;
@@ -90,30 +92,23 @@ export function RegistrationStatusPage({
         </p>
       </section>
 
-      {!paid && (
-        <section className="sub-panel-accent rounded-xl p-5 text-sm">
-          <p className="font-semibold text-sky-50">Paga en tienda</p>
-          <p className="mt-2 text-sky-100/70">
-            Cuota: {formatFee(event.entryFeeCents)} en{" "}
-            <strong>{store?.name ?? "la tienda"}</strong>
-          </p>
-          {store && (store.address || store.city) && (
-            <p className="mt-2 text-sky-100/50">
-              {[store.address, store.city].filter(Boolean).join(", ")}
-              {store.phone ? ` · ${store.phone}` : ""}
-            </p>
-          )}
-          <p className="mt-3 text-xs text-sky-100/40">
-            Esta página se actualiza cuando el staff confirme tu pago.
-          </p>
-          <button
-            type="button"
-            onClick={load}
-            className="mt-3 text-xs text-sky-400 underline"
-          >
-            Actualizar
-          </button>
-        </section>
+      {paymentNotice && (
+        <p className="rounded-lg border border-sky-500/30 bg-sky-950/40 p-3 text-sm text-sky-200">
+          {paymentNotice}
+        </p>
+      )}
+
+      {!paid && event.entryFeeCents > 0 && (
+        <OnlinePaymentPanel
+          registrationAccessToken={accessToken}
+          entryFeeCents={event.entryFeeCents}
+          storeName={store?.name ?? "la tienda"}
+          storeAddress={store?.address}
+          storeCity={store?.city}
+          storePhone={store?.phone}
+          onlinePaymentsAvailable={data.onlinePaymentsAvailable}
+          onRefresh={load}
+        />
       )}
 
       {paid && !deckEditToken && canSubmit && (
