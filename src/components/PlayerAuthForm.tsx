@@ -61,23 +61,15 @@ export function PlayerAuthForm({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-sm text-sky-100/55">
-        {isLogin ? (
-          <>
-            Entras al <strong className="text-sky-300">modo jugador</strong>.
-            ¿Gestionas una tienda?{" "}
-            <a href="/admin/login" className="sub-link underline">
-              Acceso tienda
-            </a>
-            .
-          </>
-        ) : (
-          <>
-            Crea tu cuenta de jugador (Pop ID, mazos, inscripciones). No es el
-            panel de la tienda.
-          </>
-        )}
-      </p>
+      {!isLogin && (
+        <p className="text-sm text-sky-100/55">
+          Cuenta de jugador (Pop ID, mazos, inscripciones). Si ya tienes cuenta,{" "}
+          <a href="/login" className="sub-link underline">
+            inicia sesión
+          </a>
+          .
+        </p>
+      )}
       {mode === "register" && (
         <>
           <div>

@@ -18,7 +18,7 @@ export const msg = {
     saveFailed: "No se pudo guardar la lista",
     updateFailed: "No se pudo actualizar la lista",
     createEventFailed: "No se pudo crear el torneo",
-    loginFailed: "Credenciales incorrectas",
+    loginFailed: "Correo o contraseña incorrectos",
     emailPasswordRequired: "Correo y contraseña son obligatorios",
     serverConfigError: "Error de configuración del servidor",
     missingMongoUri:

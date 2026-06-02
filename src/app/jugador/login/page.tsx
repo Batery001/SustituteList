@@ -1,19 +1,12 @@
-import { Suspense } from "react";
-import Link from "next/link";
-import { PlayerAuthForm } from "@/components/PlayerAuthForm";
+import { redirect } from "next/navigation";
 
-export default function PlayerLoginPage() {
-  return (
-    <>
-      <Suspense fallback={<p className="text-sky-100/50">Cargando…</p>}>
-        <PlayerAuthForm mode="login" />
-      </Suspense>
-      <p className="mt-6 text-center text-sm text-sky-100/45">
-        ¿No tienes cuenta?{" "}
-        <Link href="/jugador/registro" className="sub-link underline">
-          Regístrate
-        </Link>
-      </p>
-    </>
-  );
+export default async function JugadorLoginRedirect({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const defaultNext = "/jugador/cuenta";
+  const target = next ?? defaultNext;
+  redirect(`/login?next=${encodeURIComponent(target)}`);
 }

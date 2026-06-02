@@ -5,7 +5,7 @@ import { getAdminStoreId } from "@/lib/auth";
 export default async function AdminPage() {
   const storeId = await getAdminStoreId();
   if (!storeId) {
-    redirect("/admin/login");
+    redirect("/login?next=/admin");
   }
 
   return <AdminDashboard />;

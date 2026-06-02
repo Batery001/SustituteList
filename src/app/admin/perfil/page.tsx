@@ -4,7 +4,7 @@ import { getAdminStoreId } from "@/lib/auth";
 
 export default async function StoreProfilePage() {
   const storeId = await getAdminStoreId();
-  if (!storeId) redirect("/admin/login");
+  if (!storeId) redirect("/login?next=/admin/perfil");
 
   return <StoreProfileForm />;
 }

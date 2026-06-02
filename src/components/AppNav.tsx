@@ -108,7 +108,7 @@ export function AppNav({ area }: { area: Area }) {
           <nav className="border-t border-sky-500/15 px-4 py-3">
             <p className="mb-2 text-xs text-sky-100/50">No has iniciado sesión</p>
             <div className="flex flex-wrap gap-1">
-              <NavLink href="/jugador/login" active={pathname === "/jugador/login"}>
+              <NavLink href="/login" active={pathname === "/login"}>
                 Iniciar sesión
               </NavLink>
               <NavLink href="/jugador/registro" active={pathname === "/jugador/registro"}>
@@ -201,11 +201,11 @@ export function AppNav({ area }: { area: Area }) {
     return (
       <nav className="border-t border-sky-500/15 px-4 py-3">
         <div className="flex flex-wrap gap-1">
-          <NavLink href="/jugador/login" active={false}>
-            Soy jugador
+          <NavLink href="/login" active={pathname === "/login"}>
+            Iniciar sesión
           </NavLink>
-          <NavLink href="/admin/login" active={false}>
-            Soy tienda
+          <NavLink href="/jugador/registro" active={pathname === "/jugador/registro"}>
+            Crear cuenta
           </NavLink>
         </div>
       </nav>

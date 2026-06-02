@@ -28,7 +28,7 @@ export function PlayerAccountPage() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.player) {
-          router.push("/jugador/login");
+          router.push("/login?next=/jugador/cuenta");
           return;
         }
         setPlayer(data.player);

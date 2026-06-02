@@ -7,7 +7,7 @@ import {
   PLAYER_COOKIE_NAME,
   createPlayerSessionToken,
 } from "@/lib/player-auth";
-import { MAX_AGE } from "@/lib/auth";
+import { COOKIE_NAME, MAX_AGE } from "@/lib/auth";
 import { Player } from "@/models/Player";
 
 export const runtime = "nodejs";
@@ -80,13 +80,15 @@ export async function POST(request: Request) {
       },
     });
 
-    response.cookies.set(PLAYER_COOKIE_NAME, token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "lax" as const,
       maxAge: MAX_AGE,
       path: "/",
-    });
+    };
+    response.cookies.set(PLAYER_COOKIE_NAME, token, cookieOptions);
+    response.cookies.set(COOKIE_NAME, "", { ...cookieOptions, maxAge: 0 });
 
     return response;
   } catch (err) {

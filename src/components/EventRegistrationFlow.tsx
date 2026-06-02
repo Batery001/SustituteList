@@ -223,7 +223,7 @@ export function EventRegistrationFlow({
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/jugador/login?next=/e/${eventSlug}`}
+                  href={`/login?next=/e/${eventSlug}`}
                   className="sub-btn-primary rounded-lg px-4 py-2 text-sm"
                 >
                   Iniciar sesión

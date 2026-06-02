@@ -56,17 +56,27 @@ export default async function HomePage() {
           </section>
         )}
 
+        <section className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/login"
+            className="sub-btn-primary rounded-xl px-6 py-3 text-center text-sm"
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            href="/jugador/registro"
+            className="rounded-xl border border-sky-500/30 px-6 py-3 text-center text-sm text-sky-200"
+          >
+            Crear cuenta de jugador
+          </Link>
+        </section>
+
         <section className="space-y-3 text-sm text-sky-100/50">
-          <h3 className="font-semibold text-sky-100/90">Para jugadores</h3>
+          <h3 className="font-semibold text-sky-100/90">Cómo funciona</h3>
           <ul className="list-inside list-disc space-y-1">
-            <li>Inscríbete → paga en tienda → registra tu lista</li>
-            <li>Lista en inglés desde Pokémon TCG Live (60 cartas)</li>
-            <li>Edita hasta la hora límite con tu enlace personal</li>
+            <li>Inscríbete → paga → registra tu lista (60 cartas, inglés)</li>
+            <li>El mismo login sirve para tienda (panel) y jugadores (cuenta)</li>
           </ul>
-          <p className="pt-2 text-xs text-sky-100/40">
-            Usa el menú superior cuando hayas iniciado sesión: Mi cuenta, Mis
-            mazos y Perfil.
-          </p>
         </section>
       </div>
     </PageShell>

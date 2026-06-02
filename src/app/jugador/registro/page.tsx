@@ -10,7 +10,7 @@ export default function PlayerRegisterPage() {
       </Suspense>
       <p className="mt-6 text-center text-sm text-sky-100/45">
         ¿Ya tienes cuenta?{" "}
-        <Link href="/jugador/login" className="sub-link underline">
+        <Link href="/login" className="sub-link underline">
           Iniciar sesión
         </Link>
       </p>

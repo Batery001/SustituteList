@@ -20,7 +20,7 @@ export function PlayerProfileForm() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.player) {
-          router.push("/jugador/login?next=/jugador/perfil");
+          router.push("/login?next=/jugador/perfil");
           return;
         }
         setPlayerName(data.player.playerName);
