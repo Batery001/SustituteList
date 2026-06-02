@@ -12,7 +12,13 @@ const StoreSchema = new Schema(
     phone: { type: String, default: "" },
     description: { type: String, default: "" },
     defaultEntryFeeCents: { type: Number, default: 0 },
-    mercadoPagoAccessToken: { type: String, default: "" },
+    transbankCommerceCode: { type: String, default: "" },
+    transbankApiKey: { type: String, default: "" },
+    transbankEnvironment: {
+      type: String,
+      enum: ["integration", "production"],
+      default: "integration",
+    },
     onlinePaymentsEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }

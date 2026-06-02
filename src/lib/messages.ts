@@ -51,8 +51,8 @@ export const msg = {
     storeSlugTaken: "Ese identificador de tienda ya está en uso",
     storeRegisterFailed: "No se pudo registrar la tienda",
     profileUpdateFailed: "No se pudo actualizar el perfil",
-    mercadoPagoNotConfigured:
-      "Pago online no configurado. La tienda debe añadir MERCADOPAGO_ACCESS_TOKEN en Vercel.",
+    transbankNotConfigured:
+      "Webpay no configurado. Añade código de comercio y API Key en el perfil de tienda o en Vercel (TRANSBANK_*).",
     onlinePaymentsDisabled: "La tienda no tiene activado el pago online",
     paymentCreateFailed: "No se pudo iniciar el pago online",
     deckNameAndListRequired: "Nombre del mazo y lista son obligatorios",

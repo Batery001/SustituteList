@@ -29,7 +29,12 @@ export async function GET() {
       description: store.description ?? "",
       defaultEntryFeeCents: store.defaultEntryFeeCents ?? 0,
       onlinePaymentsEnabled: store.onlinePaymentsEnabled !== false,
-      hasMercadoPago: Boolean(store.mercadoPagoAccessToken?.trim()),
+      transbankCommerceCode: store.transbankCommerceCode ?? "",
+      transbankEnvironment:
+        store.transbankEnvironment === "production"
+          ? "production"
+          : "integration",
+      hasTransbankApiKey: Boolean(store.transbankApiKey?.trim()),
     },
   });
 }
@@ -50,7 +55,9 @@ export async function PUT(request: Request) {
       phone?: string;
       description?: string;
       defaultEntryFeeCents?: number;
-      mercadoPagoAccessToken?: string;
+      transbankCommerceCode?: string;
+      transbankApiKey?: string;
+      transbankEnvironment?: "integration" | "production";
       onlinePaymentsEnabled?: boolean;
     };
 
@@ -69,8 +76,17 @@ export async function PUT(request: Request) {
     if (typeof body.defaultEntryFeeCents === "number") {
       store.defaultEntryFeeCents = Math.max(0, Math.round(body.defaultEntryFeeCents));
     }
-    if (body.mercadoPagoAccessToken?.trim()) {
-      store.mercadoPagoAccessToken = body.mercadoPagoAccessToken.trim();
+    if (body.transbankCommerceCode !== undefined) {
+      store.transbankCommerceCode = body.transbankCommerceCode.trim();
+    }
+    if (body.transbankApiKey?.trim()) {
+      store.transbankApiKey = body.transbankApiKey.trim();
+    }
+    if (
+      body.transbankEnvironment === "production" ||
+      body.transbankEnvironment === "integration"
+    ) {
+      store.transbankEnvironment = body.transbankEnvironment;
     }
     if (typeof body.onlinePaymentsEnabled === "boolean") {
       store.onlinePaymentsEnabled = body.onlinePaymentsEnabled;
@@ -97,6 +113,7 @@ export async function PUT(request: Request) {
         phone: store.phone,
         description: store.description,
         defaultEntryFeeCents: store.defaultEntryFeeCents,
+        transbankEnvironment: store.transbankEnvironment,
       },
     });
   } catch (err) {

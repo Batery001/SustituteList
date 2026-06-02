@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import {
-  createMercadoPagoPreference,
-  getMercadoPagoToken,
-  getPublicBaseUrl,
-  isMercadoPagoConfigured,
-} from "@/lib/mercadopago";
 import { msg } from "@/lib/messages";
+import { getPublicBaseUrl } from "@/lib/app-url";
+import {
+  buildBuyOrder,
+  createWebpayTransaction,
+  getTransbankCredentials,
+  isTransbankConfigured,
+} from "@/lib/transbank";
 import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
 import { Store } from "@/models/Store";
-import { Player } from "@/models/Player";
 
 export const runtime = "nodejs";
 
@@ -57,8 +57,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const amount =
-      event.entryFeeCents ?? store.defaultEntryFeeCents ?? 0;
+    const amount = event.entryFeeCents ?? store.defaultEntryFeeCents ?? 0;
     if (amount <= 0) {
       return NextResponse.json(
         { error: "Este torneo no tiene cuota de pago" },
@@ -66,56 +65,36 @@ export async function POST(request: Request) {
       );
     }
 
-    const mpToken = getMercadoPagoToken(store.mercadoPagoAccessToken);
-    if (!isMercadoPagoConfigured(mpToken)) {
+    const creds = getTransbankCredentials(store);
+    if (!isTransbankConfigured(store)) {
       return NextResponse.json(
-        { error: msg.api.mercadoPagoNotConfigured },
+        { error: msg.api.transbankNotConfigured },
         { status: 503 }
       );
     }
 
     const baseUrl = getPublicBaseUrl(request);
-    const returnPath = `/e/${event.slug}/mi-inscripcion/${registration.accessToken}`;
-    const backUrls = {
-      success: `${baseUrl}${returnPath}?payment=success`,
-      failure: `${baseUrl}${returnPath}?payment=failure`,
-      pending: `${baseUrl}${returnPath}?payment=pending`,
-    };
+    const returnUrl = `${baseUrl}/api/payments/transbank/return?access=${registration.accessToken}`;
 
-    let payerEmail: string | undefined;
-    if (registration.playerId) {
-      const player = await Player.findById(registration.playerId).lean();
-      payerEmail = player?.email;
-    }
+    const buyOrder = buildBuyOrder(registration._id.toString());
 
-    const preference = await createMercadoPagoPreference({
-      accessToken: mpToken!,
-      items: [
-        {
-          title: `Inscripción: ${event.name}`,
-          quantity: 1,
-          unit_price: amount,
-          currency_id: "CLP",
-        },
-      ],
-      externalReference: registration._id.toString(),
-      notificationUrl: `${baseUrl}/api/payments/webhook/mercadopago`,
-      backUrls,
-      payerEmail,
+    const tx = await createWebpayTransaction(creds!, {
+      buyOrder,
+      sessionId: registration.accessToken,
+      amount,
+      returnUrl,
     });
 
-    registration.mpPreferenceId = preference.id;
+    registration.tbkBuyOrder = buyOrder;
+    registration.tbkToken = tx.token;
     await registration.save();
 
-    const useSandbox =
-      process.env.MERCADOPAGO_SANDBOX === "true" && preference.sandboxInitPoint;
-
     return NextResponse.json({
-      initPoint: useSandbox ? preference.sandboxInitPoint : preference.initPoint,
-      preferenceId: preference.id,
+      url: tx.url,
+      token: tx.token,
     });
   } catch (err) {
-    console.error("Mercado Pago checkout error:", err);
+    console.error("Transbank create error:", err);
     return NextResponse.json(
       {
         error:

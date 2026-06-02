@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 function formatFee(pesos: number): string {
@@ -33,12 +33,13 @@ export function OnlinePaymentPanel({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function payOnline() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/payments/mercadopago", {
+      const res = await fetch("/api/payments/transbank", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ registrationAccessToken }),
@@ -46,11 +47,19 @@ export function OnlinePaymentPanel({
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "No se pudo iniciar el pago");
+        setLoading(false);
         return;
       }
-      if (data.initPoint) {
-        window.location.href = data.initPoint;
+      if (data.url && data.token && formRef.current) {
+        formRef.current.action = data.url;
+        const input = formRef.current.querySelector(
+          'input[name="token_ws"]'
+        ) as HTMLInputElement;
+        if (input) input.value = data.token;
+        formRef.current.submit();
+        return;
       }
+      setError("Respuesta de pago incompleta");
     } catch {
       setError("Error de red. Intenta de nuevo.");
     } finally {
@@ -60,6 +69,10 @@ export function OnlinePaymentPanel({
 
   return (
     <section className="sub-panel-accent space-y-4 rounded-xl p-5 text-sm">
+      <form ref={formRef} method="POST" className="hidden">
+        <input type="hidden" name="token_ws" defaultValue="" />
+      </form>
+
       <div>
         <p className="font-semibold text-sky-50">Pago de inscripción</p>
         <p className="mt-2 text-sky-100/70">
@@ -75,11 +88,11 @@ export function OnlinePaymentPanel({
             disabled={loading}
             className="w-full"
           >
-            {loading ? "Redirigiendo…" : "Pagar online con Mercado Pago"}
+            {loading ? "Conectando con Webpay…" : "Pagar con Transbank Webpay"}
           </Button>
           <p className="text-xs text-sky-100/40">
-            Tarjeta, débito o cuenta Mercado Pago. Al aprobarse, podrás enviar tu
-            lista al instante.
+            Tarjetas de crédito y débito chilenas. Serás redirigido al checkout
+            seguro de Transbank.
           </p>
         </div>
       )}

@@ -6,10 +6,7 @@ import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
 import { Store } from "@/models/Store";
-import {
-  getMercadoPagoToken,
-  isMercadoPagoConfigured,
-} from "@/lib/mercadopago";
+import { isTransbankConfigured } from "@/lib/transbank";
 
 export async function GET(
   _request: Request,
@@ -49,7 +46,7 @@ export async function GET(
   const onlinePaymentsAvailable =
     entryFeeCents > 0 &&
     store?.onlinePaymentsEnabled !== false &&
-    isMercadoPagoConfigured(getMercadoPagoToken(store?.mercadoPagoAccessToken));
+    isTransbankConfigured(store);
 
   return NextResponse.json({
     registration: {

@@ -19,9 +19,11 @@ export function StoreProfileForm() {
     description: "",
     defaultEntryFeeCents: 0,
     onlinePaymentsEnabled: true,
-    mercadoPagoAccessToken: "",
+    transbankCommerceCode: "",
+    transbankApiKey: "",
+    transbankEnvironment: "integration" as "integration" | "production",
   });
-  const [hasMercadoPago, setHasMercadoPago] = useState(false);
+  const [hasTransbankApiKey, setHasTransbankApiKey] = useState(false);
 
   useEffect(() => {
     fetch("/api/store/profile")
@@ -30,9 +32,9 @@ export function StoreProfileForm() {
         if (data.store) {
           setForm({
             ...data.store,
-            mercadoPagoAccessToken: "",
+            transbankApiKey: "",
           });
-          setHasMercadoPago(data.store.hasMercadoPago);
+          setHasTransbankApiKey(data.store.hasTransbankApiKey);
         }
         setLoading(false);
       });
@@ -54,6 +56,7 @@ export function StoreProfileForm() {
       return;
     }
     setMessage("Perfil guardado");
+    if (form.transbankApiKey) setHasTransbankApiKey(true);
     router.refresh();
   }
 
@@ -110,36 +113,81 @@ export function StoreProfileForm() {
         onChange={(e) => setForm({ ...form, description: e.target.value })}
         className="sub-input min-h-[80px] w-full px-3 py-2 text-sm"
       />
-      <label className="flex items-center gap-2 text-sm text-sky-200/80">
-        <input
-          type="checkbox"
-          checked={form.onlinePaymentsEnabled}
-          onChange={(e) =>
-            setForm({ ...form, onlinePaymentsEnabled: e.target.checked })
-          }
-          className="rounded"
-        />
-        Permitir pago online (Mercado Pago)
-      </label>
-      <label className="block text-xs text-zinc-400">
-        Access Token Mercado Pago{" "}
-        {hasMercadoPago && (
-          <span className="text-emerald-400">(ya configurado)</span>
-        )}
-        <input
-          type="password"
-          placeholder="APP_USR-… (dejar vacío para no cambiar)"
-          value={form.mercadoPagoAccessToken}
-          onChange={(e) =>
-            setForm({ ...form, mercadoPagoAccessToken: e.target.value })
-          }
-          className="sub-input mt-1 w-full px-3 py-2 text-sm"
-        />
-        <span className="mt-1 block text-sky-100/35">
-          También puedes usar MERCADOPAGO_ACCESS_TOKEN en Vercel para toda la
-          tienda.
-        </span>
-      </label>
+
+      <fieldset className="sub-panel space-y-3 rounded-xl p-4">
+        <legend className="text-sm font-semibold text-sky-200">
+          Transbank Webpay Plus
+        </legend>
+        <label className="flex items-center gap-2 text-sm text-sky-200/80">
+          <input
+            type="checkbox"
+            checked={form.onlinePaymentsEnabled}
+            onChange={(e) =>
+              setForm({ ...form, onlinePaymentsEnabled: e.target.checked })
+            }
+            className="rounded"
+          />
+          Permitir pago online
+        </label>
+        <label className="block text-xs text-zinc-400">
+          Código de comercio
+          <input
+            type="text"
+            placeholder="597055555532 (pruebas)"
+            value={form.transbankCommerceCode}
+            onChange={(e) =>
+              setForm({ ...form, transbankCommerceCode: e.target.value })
+            }
+            className="sub-input mt-1 w-full px-3 py-2 text-sm font-mono"
+          />
+        </label>
+        <label className="block text-xs text-zinc-400">
+          API Key (llave secreta){" "}
+          {hasTransbankApiKey && (
+            <span className="text-emerald-400">(ya guardada)</span>
+          )}
+          <input
+            type="password"
+            placeholder="Dejar vacío para no cambiar"
+            value={form.transbankApiKey}
+            onChange={(e) =>
+              setForm({ ...form, transbankApiKey: e.target.value })
+            }
+            className="sub-input mt-1 w-full px-3 py-2 text-sm font-mono"
+          />
+        </label>
+        <label className="block text-xs text-zinc-400">
+          Ambiente
+          <select
+            value={form.transbankEnvironment}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                transbankEnvironment: e.target.value as
+                  | "integration"
+                  | "production",
+              })
+            }
+            className="sub-input mt-1 w-full px-3 py-2 text-sm"
+          >
+            <option value="integration">Integración (pruebas)</option>
+            <option value="production">Producción</option>
+          </select>
+        </label>
+        <p className="text-xs text-sky-100/35">
+          Credenciales en{" "}
+          <a
+            href="https://www.transbankdevelopers.cl"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            transbankdevelopers.cl
+          </a>
+          . También puedes usar TRANSBANK_* en Vercel como respaldo global.
+        </p>
+      </fieldset>
+
       <label className="block text-xs text-zinc-400">
         Cuota por defecto (CLP, 0 = gratis)
         <input

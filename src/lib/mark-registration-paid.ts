@@ -2,7 +2,7 @@ import { Registration } from "@/models/Registration";
 
 export async function markRegistrationPaid(
   registrationId: string,
-  options?: { mpPaymentId?: string }
+  options?: { tbkAuthorizationCode?: string }
 ): Promise<boolean> {
   const registration = await Registration.findById(registrationId);
   if (!registration) return false;
@@ -11,8 +11,8 @@ export async function markRegistrationPaid(
 
   registration.paymentStatus = "paid";
   registration.paidAt = new Date();
-  if (options?.mpPaymentId) {
-    registration.mpPaymentId = options.mpPaymentId;
+  if (options?.tbkAuthorizationCode) {
+    registration.tbkAuthorizationCode = options.tbkAuthorizationCode;
   }
   await registration.save();
   return true;

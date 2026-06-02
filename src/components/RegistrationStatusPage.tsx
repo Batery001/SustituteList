@@ -53,6 +53,7 @@ export function RegistrationStatusPage({
     if (q === "success") setPaymentNotice("Pago recibido. Si no ves el cambio, pulsa Actualizar.");
     if (q === "pending") setPaymentNotice("Pago pendiente de confirmación.");
     if (q === "failure") setPaymentNotice("El pago no se completó. Puedes intentar de nuevo.");
+    if (q === "error") setPaymentNotice("Hubo un error al confirmar el pago. Contacta a la tienda.");
   }, []);
 
   if (loading) {
