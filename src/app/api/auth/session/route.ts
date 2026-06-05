@@ -8,21 +8,10 @@ import { Store } from "@/models/Store";
 
 export async function GET() {
   const nextAuthSession = await auth();
-
-  if (nextAuthSession?.user) {
-    const { role, name, id, popId, birthDate, email } = nextAuthSession.user;
-    return NextResponse.json({
-      user: { id, email, name, role, popId, birthDate },
-      store:
-        role === "STORE" || role === "ADMIN" ? { name: name ?? "" } : null,
-      player: role === "PLAYER" ? { playerName: name ?? "" } : null,
-    });
-  }
-
   const storeId = await getAdminStoreId();
   const playerId = await getPlayerId();
 
-  if (!storeId && !playerId) {
+  if (!storeId && !playerId && !nextAuthSession?.user) {
     return NextResponse.json({ store: null, player: null, user: null });
   }
 
@@ -41,5 +30,24 @@ export async function GET() {
     if (doc) player = { playerName: doc.playerName };
   }
 
-  return NextResponse.json({ store, player, user: null });
+  const user = nextAuthSession?.user
+    ? {
+        id: nextAuthSession.user.id,
+        email: nextAuthSession.user.email,
+        name: nextAuthSession.user.name,
+        role: nextAuthSession.user.role,
+        popId: nextAuthSession.user.popId,
+        birthDate: nextAuthSession.user.birthDate,
+      }
+    : null;
+
+  if (!store && user && (user.role === "STORE" || user.role === "ADMIN")) {
+    store = { name: user.name ?? "Tienda" };
+  }
+
+  if (!player && user?.role === "PLAYER") {
+    player = { playerName: user.name ?? "Jugador" };
+  }
+
+  return NextResponse.json({ store, player, user });
 }

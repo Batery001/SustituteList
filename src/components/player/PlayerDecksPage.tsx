@@ -24,7 +24,7 @@ export function PlayerDecksPage() {
       fetch("/api/player/decks"),
     ]).then(async ([meRes, decksRes]) => {
       const me = await meRes.json();
-      if (!me.player) {
+      if (!meRes.ok || !me.player) {
         router.push("/auth/login?callbackUrl=/jugador/mazos");
         return;
       }
@@ -32,6 +32,8 @@ export function PlayerDecksPage() {
       const decksData = await decksRes.json();
       setDecks(decksData.decks ?? []);
       setLoading(false);
+    }).catch(() => {
+      router.push("/auth/login?callbackUrl=/jugador/mazos");
     });
   }, [router]);
 

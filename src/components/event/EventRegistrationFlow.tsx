@@ -223,13 +223,13 @@ export function EventRegistrationFlow({
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/login?next=/e/${eventSlug}`}
+                  href={`/auth/login?callbackUrl=${encodeURIComponent(`/e/${eventSlug}`)}`}
                   className="sub-btn-primary rounded-lg px-4 py-2 text-sm"
                 >
                   Iniciar sesión
                 </Link>
                 <Link
-                  href={`/jugador/registro?next=/e/${eventSlug}`}
+                  href={`/auth/register?callbackUrl=${encodeURIComponent(`/e/${eventSlug}`)}`}
                   className="rounded-lg border border-sky-500/30 px-4 py-2 text-sm text-sky-200"
                 >
                   Crear cuenta

@@ -80,7 +80,7 @@ export function AdminDashboard() {
   const load = useCallback(async () => {
     const res = await fetch("/api/events?scope=admin");
     if (res.status === 401) {
-      router.push("/login");
+      router.push("/auth/login?callbackUrl=%2Fadmin");
       return;
     }
     const data = await res.json();

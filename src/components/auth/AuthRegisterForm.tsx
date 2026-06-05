@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 type AccountType = "PLAYER" | "STORE";
 
-export function AuthRegisterForm() {
+function AuthRegisterFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl");
+
   const [accountType, setAccountType] = useState<AccountType>("PLAYER");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -75,7 +78,11 @@ export function AuthRegisterForm() {
       return;
     }
 
-    router.push(data.redirect ?? "/");
+    router.push(
+      callbackUrl && callbackUrl.startsWith("/")
+        ? callbackUrl
+        : (data.redirect ?? "/")
+    );
     router.refresh();
   }
 
@@ -207,5 +214,13 @@ export function AuthRegisterForm() {
         </Link>
       </p>
     </form>
+  );
+}
+
+export function AuthRegisterForm() {
+  return (
+    <Suspense fallback={<p className="text-sky-100/50">Cargando…</p>}>
+      <AuthRegisterFormInner />
+    </Suspense>
   );
 }

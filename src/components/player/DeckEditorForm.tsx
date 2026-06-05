@@ -41,6 +41,10 @@ export function DeckEditorForm({
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/auth/login?callbackUrl=/jugador/mazos/nuevo");
+          return;
+        }
         setError(data.error ?? "No se pudo guardar");
         return;
       }
