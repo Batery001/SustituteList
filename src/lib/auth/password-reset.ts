@@ -5,7 +5,7 @@ import { Player } from "@/models/Player";
 import { Store } from "@/models/Store";
 import { User } from "@/models/User";
 
-const RESET_MAX_AGE_MS = 15 * 60 * 1000;
+const RESET_MAX_AGE_MS = 30 * 60 * 1000;
 
 function getSecret(): string {
   const secret =
@@ -18,6 +18,32 @@ function sign(payload: string): string {
   return createHmac("sha256", getSecret()).update(payload).digest("hex");
 }
 
+function encodeTokenPayload(email: string, exp: number, nonce: string): string {
+  return Buffer.from(
+    JSON.stringify({ email: email.toLowerCase(), exp, nonce }),
+    "utf8"
+  ).toString("base64url");
+}
+
+function decodeTokenPayload(
+  encoded: string
+): { email: string; exp: number; nonce: string } | null {
+  try {
+    const json = Buffer.from(encoded, "base64url").toString("utf8");
+    const parsed = JSON.parse(json) as {
+      email?: string;
+      exp?: number;
+      nonce?: string;
+    };
+    if (!parsed.email || typeof parsed.exp !== "number" || !parsed.nonce) {
+      return null;
+    }
+    return { email: parsed.email, exp: parsed.exp, nonce: parsed.nonce };
+  } catch {
+    return null;
+  }
+}
+
 function datesMatch(stored: Date, input: string): boolean {
   const s = new Date(stored);
   const i = new Date(`${input}T12:00:00`);
@@ -28,10 +54,11 @@ function datesMatch(stored: Date, input: string): boolean {
   );
 }
 
+/** Token firmado: base64url(payload).hmac — soporta emails con puntos. */
 export function createPasswordResetToken(email: string): string {
   const exp = Date.now() + RESET_MAX_AGE_MS;
   const nonce = randomBytes(8).toString("hex");
-  const payload = `${email.toLowerCase()}.${exp}.${nonce}`;
+  const payload = encodeTokenPayload(email, exp, nonce);
   return `${payload}.${sign(payload)}`;
 }
 
@@ -40,11 +67,11 @@ export function verifyPasswordResetToken(
 ): { email: string } | null {
   if (!token) return null;
 
-  const parts = token.split(".");
-  if (parts.length !== 4) return null;
+  const dot = token.lastIndexOf(".");
+  if (dot <= 0) return null;
 
-  const [email, expStr, nonce, sig] = parts;
-  const payload = `${email}.${expStr}.${nonce}`;
+  const payload = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
   const expected = sign(payload);
 
   try {
@@ -55,10 +82,10 @@ export function verifyPasswordResetToken(
     return null;
   }
 
-  const exp = parseInt(expStr, 10);
-  if (Number.isNaN(exp) || Date.now() > exp) return null;
+  const data = decodeTokenPayload(payload);
+  if (!data || Date.now() > data.exp) return null;
 
-  return { email };
+  return { email: data.email };
 }
 
 export class PasswordResetError extends Error {
@@ -155,7 +182,10 @@ export async function applyPasswordReset(
 
   const verified = verifyPasswordResetToken(resetToken);
   if (!verified) {
-    throw new PasswordResetError("El enlace de recuperación expiró o no es válido", 401);
+    throw new PasswordResetError(
+      "La sesión de recuperación expiró o no es válida. Vuelve a verificar tus datos.",
+      401
+    );
   }
 
   await dbConnect();
