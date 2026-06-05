@@ -6,7 +6,26 @@ import { Store } from "@/models/Store";
 
 export const dynamic = "force-dynamic";
 
-export default async function TiendasPage() {
+function matchesQuery(
+  q: string,
+  store: { name: string; slug?: string | null; city?: string | null },
+  events: { name: string }[]
+) {
+  const needle = q.toLowerCase();
+  if (store.name.toLowerCase().includes(needle)) return true;
+  if (store.slug?.toLowerCase().includes(needle)) return true;
+  if (store.city?.toLowerCase().includes(needle)) return true;
+  return events.some((e) => e.name.toLowerCase().includes(needle));
+}
+
+export default async function TiendasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const query = q?.trim() ?? "";
+
   await connectDB();
   const stores = await Store.find({ slug: { $exists: true, $ne: "" } })
     .sort({ name: 1 })
@@ -20,14 +39,31 @@ export default async function TiendasPage() {
     byStore.set(k, arr);
   }
 
+  const filtered = query
+    ? stores.filter((s) =>
+        matchesQuery(query, s, byStore.get(s._id.toString()) ?? [])
+      )
+    : stores;
+
   return (
     <PageShell subtitle="Tiendas del hub" area="public">
-      <h1 className="mb-4 text-lg font-bold">Tiendas</h1>
-      {stores.length === 0 ? (
-        <p className="text-sm text-sky-100/50">Aún no hay tiendas registradas.</p>
+      <h1 className="mb-1 text-lg font-bold">Tiendas</h1>
+      {query && (
+        <p className="mb-4 text-sm text-sky-100/45">
+          Resultados para &ldquo;{query}&rdquo;
+          {filtered.length === 0 && " — sin coincidencias"}
+        </p>
+      )}
+      {!query && <div className="mb-4" />}
+      {filtered.length === 0 ? (
+        <p className="text-sm text-sky-100/50">
+          {query
+            ? "No encontramos tiendas ni torneos con ese término."
+            : "Aún no hay tiendas registradas."}
+        </p>
       ) : (
         <ul className="space-y-3">
-          {stores.map((s) => (
+          {filtered.map((s) => (
             <li key={s._id.toString()} className="sub-panel rounded-xl p-4">
               <Link href={`/t/${s.slug}`} className="font-bold text-sky-100">
                 {s.name}

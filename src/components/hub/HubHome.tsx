@@ -2,8 +2,8 @@ import Link from "next/link";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
+import { HubHeroSection } from "@/components/hub/HubHeroSection";
 import { StoreCard } from "@/components/hub/StoreCard";
-import { Logo } from "@/components/layout/Logo";
 
 export async function HubHome() {
   let stores: {
@@ -46,45 +46,7 @@ export async function HubHome() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="sub-panel relative overflow-hidden rounded-2xl p-6">
-        <div
-          className="pointer-events-none absolute -right-2 top-2 h-24 w-24 opacity-20"
-          aria-hidden
-        >
-          <Logo size="lg" showName={false} href={null} />
-        </div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-sky-400">
-          Hub · Pokémon TCG
-        </p>
-        <h1 className="mt-1 text-xl font-bold text-sky-50">
-          Torneos, inscripciones y listas en un solo lugar
-        </h1>
-        <p className="mt-2 text-sm text-sky-100/55">
-          Encuentra tiendas, inscríbete, paga y sube tu decklist Standard.
-        </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Link
-            href="/login"
-            className="sub-btn-primary rounded-xl px-6 py-3 text-center text-sm"
-          >
-            Iniciar sesión
-          </Link>
-          <Link
-            href="/tiendas"
-            className="rounded-xl border border-sky-500/30 px-6 py-3 text-center text-sm text-sky-200"
-          >
-            Ver tiendas
-          </Link>
-        </div>
-        {featuredEvent && (
-          <Link
-            href={`/e/${featuredEvent.slug}`}
-            className="mt-4 block text-sm text-sky-400 underline"
-          >
-            Torneo destacado: {featuredEvent.name} →
-          </Link>
-        )}
-      </section>
+      <HubHeroSection featuredEvent={featuredEvent} />
 
       {stores.length > 0 && (
         <section>
