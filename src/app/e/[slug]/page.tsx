@@ -3,6 +3,7 @@ import { BrandHeader } from "@/components/BrandHeader";
 import { EventRegistrationFlow } from "@/components/EventRegistrationFlow";
 import { EventTimePanel } from "@/components/EventTimePanel";
 import { connectDB } from "@/lib/db";
+import { isEventOpen } from "@/lib/events/event-status";
 import {
   formatDeadline,
   formatEventType,
@@ -40,7 +41,7 @@ export default async function EventPage({
   const timezone = getStoreTimezone(store?.timezone);
   const deadline = new Date(event.decklistDeadlineAt);
   const deadlinePassed = isDeadlinePassed(deadline);
-  const canSubmit = event.status === "open" && !deadlinePassed;
+  const canSubmit = isEventOpen(event.status) && !deadlinePassed;
   const deadlineLabel = formatDeadline(deadline, timezone);
 
   const typeLabel = formatEventType(

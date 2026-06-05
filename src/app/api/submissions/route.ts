@@ -4,6 +4,7 @@ import { getAdminStoreId } from "@/lib/auth";
 import { parseDecklist } from "@/lib/decklist-parser";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { serializeValidation } from "@/lib/validation-display";
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const event = await Event.findOne({ slug: eventSlug, status: "open" });
+    const event = await Event.findOne({ slug: eventSlug, ...OPEN_EVENT_QUERY });
     if (!event) {
       return NextResponse.json(
         { error: msg.api.eventNotFoundOrClosed },

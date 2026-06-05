@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
+import { isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { getPlayerId } from "@/lib/player-auth";
 import { Event } from "@/models/Event";
@@ -23,7 +24,7 @@ export async function GET(
 
   const store = await Store.findById(event.storeId).lean();
   const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
-  const canSubmit = event.status === "open" && !deadlinePassed;
+  const canSubmit = isEventOpen(event.status) && !deadlinePassed;
   const entryFeeCents =
     event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0;
 

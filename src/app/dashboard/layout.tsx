@@ -20,12 +20,20 @@ export default async function DashboardLayout({
     >
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
         {session.user.role === "STORE" || session.user.role === "ADMIN" ? (
-          <Link
-            href="/dashboard/store"
-            className="rounded-lg bg-sky-500/15 px-3 py-1.5 text-sky-200"
-          >
-            Tienda
-          </Link>
+          <>
+            <Link
+              href="/dashboard/store"
+              className="rounded-lg bg-sky-500/15 px-3 py-1.5 text-sky-200"
+            >
+              Torneos
+            </Link>
+            <Link
+              href="/dashboard/store/new-event"
+              className="rounded-lg px-3 py-1.5 text-sky-100/50 hover:text-sky-200"
+            >
+              + Nuevo torneo
+            </Link>
+          </>
         ) : null}
         {session.user.role === "PLAYER" || session.user.role === "ADMIN" ? (
           <Link

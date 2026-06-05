@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseDecklist } from "@/lib/decklist-parser";
 import { connectDB } from "@/lib/db";
+import { isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { serializeValidation } from "@/lib/validation-display";
@@ -43,7 +44,7 @@ export async function GET(
       slug: event.slug,
       decklistDeadlineAt: event.decklistDeadlineAt,
       deadlinePassed,
-      canEdit: event.status === "open" && !deadlinePassed,
+      canEdit: isEventOpen(event.status) && !deadlinePassed,
     },
     store: store
       ? { name: store.name, timezone: store.timezone }
@@ -75,7 +76,7 @@ export async function PUT(
     }
 
     const event = await Event.findById(submission.eventId);
-    if (!event || event.status !== "open") {
+    if (!event || !isEventOpen(event.status)) {
       return NextResponse.json({ error: msg.api.eventClosed }, { status: 403 });
     }
 
