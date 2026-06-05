@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Substitute List",
+  title: "Substitute List · Hub Pokémon TCG",
   description:
-    "Envía y gestiona listas Standard para League Cups y Challenges locales.",
+    "Hub multitenant: tiendas, torneos League, inscripciones y decklists Standard.",
 };
 
 export default function RootLayout({
