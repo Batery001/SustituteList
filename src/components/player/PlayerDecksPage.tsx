@@ -25,7 +25,7 @@ export function PlayerDecksPage() {
     ]).then(async ([meRes, decksRes]) => {
       const me = await meRes.json();
       if (!me.player) {
-        router.push("/login?next=/jugador/mazos");
+        router.push("/auth/login?callbackUrl=/jugador/mazos");
         return;
       }
       setPlayerName(me.player.playerName);

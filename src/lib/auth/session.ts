@@ -1,5 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
+import { auth } from "@/auth";
+import { dbConnect } from "@/lib/dbConnect";
+import { Store } from "@/models/Store";
 
 const COOKIE_NAME = "substitute_admin_session";
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
@@ -50,8 +53,30 @@ export function verifySessionToken(
 export async function getAdminStoreId(): Promise<string | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
-  const session = verifySessionToken(token);
-  return session?.storeId ?? null;
+  const legacy = verifySessionToken(token);
+  if (legacy?.storeId) {
+    return legacy.storeId;
+  }
+
+  const session = await auth();
+  if (
+    session?.user?.role !== "STORE" &&
+    session?.user?.role !== "ADMIN"
+  ) {
+    return null;
+  }
+  if (!session.user.email) {
+    return null;
+  }
+
+  await dbConnect();
+  const store = await Store.findOne({
+    email: session.user.email.toLowerCase(),
+  })
+    .select("_id")
+    .lean();
+
+  return store?._id.toString() ?? null;
 }
 
 export { COOKIE_NAME, MAX_AGE };

@@ -111,7 +111,7 @@ export function AppNav({ area }: { area: Area }) {
               <NavLink href="/auth/login" active={pathname === "/auth/login"}>
                 Iniciar sesión
               </NavLink>
-              <NavLink href="/jugador/registro" active={pathname === "/jugador/registro"}>
+              <NavLink href="/auth/register" active={pathname === "/auth/register"}>
                 Crear cuenta
               </NavLink>
               <NavLink href="/" active={pathname === "/"}>
@@ -204,10 +204,10 @@ export function AppNav({ area }: { area: Area }) {
     return (
       <nav className="border-t border-sky-500/15 px-4 py-3">
         <div className="flex flex-wrap gap-1">
-          <NavLink href="/login" active={pathname === "/login"}>
+          <NavLink href="/auth/login" active={pathname === "/auth/login"}>
             Iniciar sesión
           </NavLink>
-          <NavLink href="/jugador/registro" active={pathname === "/jugador/registro"}>
+          <NavLink href="/auth/register" active={pathname === "/auth/register"}>
             Crear cuenta
           </NavLink>
         </div>
