@@ -78,7 +78,7 @@ export function AdminDashboard() {
   }
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/events");
+    const res = await fetch("/api/events?scope=admin");
     if (res.status === 401) {
       router.push("/login");
       return;

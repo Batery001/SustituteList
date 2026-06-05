@@ -19,7 +19,7 @@ const EventSchema = new Schema(
     decklistDeadlineAt: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["open", "closed", "archived"],
+      enum: ["open", "closed", "archived", "Draft", "Active", "Finished"],
       default: "open",
       index: true,
     },
@@ -28,6 +28,8 @@ const EventSchema = new Schema(
       default: ["G", "H"],
     },
     entryFeeCents: { type: Number, default: 0 },
+    maxPlayers: { type: Number },
+    price: { type: Number },
   },
   { timestamps: true }
 );

@@ -3,9 +3,11 @@ import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 import { HubHeroSection } from "@/components/hub/HubHeroSection";
+import { EventCard } from "@/components/hub/EventCard";
 import { StoreCard } from "@/components/hub/StoreCard";
+import type { PublicEventDTO } from "@/types/models";
 
-export async function HubHome() {
+export async function HubHome({ events }: { events: PublicEventDTO[] }) {
   let stores: {
     name: string;
     slug: string;
@@ -19,7 +21,9 @@ export async function HubHome() {
       const storeDocs = await Store.find({ slug: { $exists: true, $ne: "" } })
         .sort({ name: 1 })
         .lean();
-      const openEvents = await Event.find({ status: "open" }).lean();
+      const openEvents = await Event.find({
+        status: { $in: ["open", "Active"] },
+      }).lean();
       const byStore = new Map<string, typeof openEvents>();
       for (const ev of openEvents) {
         const k = ev.storeId.toString();
@@ -42,11 +46,28 @@ export async function HubHome() {
     // BD no configurada
   }
 
-  const featuredEvent = stores.flatMap((s) => s.openEvents)[0];
+  const featuredForHero = events[0]
+    ? { name: events[0].title, slug: events[0].slug }
+    : undefined;
 
   return (
     <div className="flex flex-col gap-6">
-      <HubHeroSection featuredEvent={featuredEvent} />
+      <HubHeroSection featuredEvent={featuredForHero} />
+
+      <section>
+        <h2 className="mb-3 font-semibold text-sky-100/90">Torneos activos</h2>
+        {events.length === 0 ? (
+          <p className="text-sm text-sky-100/50">
+            No hay torneos próximos publicados.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {events.map((ev) => (
+              <EventCard key={ev.id} event={ev} />
+            ))}
+          </ul>
+        )}
+      </section>
 
       {stores.length > 0 && (
         <section>

@@ -36,6 +36,7 @@ const RegistrationSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "DecklistSubmission",
     },
+    decklist: { type: String, default: "" },
   },
   { timestamps: true }
 );

@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { dbConnect } from "@/lib/dbConnect";
+import { getActivePublicEvents } from "@/lib/events/public-events";
 import { getAdminStoreId } from "@/lib/auth";
-import { connectDB } from "@/lib/db";
 import {
   getStoreTimezone,
   parseDateTimeLocalInTimeZone,
@@ -10,14 +10,22 @@ import { syncStoreTimezone } from "@/lib/sync-store-timezone";
 import { msg } from "@/lib/messages";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
+import { NextResponse } from "next/server";
 
-export async function GET() {
+/** Cartelera pública de torneos activos (hub). */
+async function getPublicEventsResponse() {
+  const events = await getActivePublicEvents();
+  return NextResponse.json({ events });
+}
+
+/** Panel admin de la tienda autenticada. */
+async function getAdminEventsResponse() {
   const storeId = await getAdminStoreId();
   if (!storeId) {
     return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
   }
 
-  await connectDB();
+  await dbConnect();
 
   const events = await Event.find({ storeId })
     .sort({ createdAt: -1 })
@@ -43,6 +51,23 @@ export async function GET() {
   });
 }
 
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  if (searchParams.get("scope") === "admin") {
+    return getAdminEventsResponse();
+  }
+
+  try {
+    return await getPublicEventsResponse();
+  } catch (err) {
+    console.error("Public events error:", err);
+    return NextResponse.json(
+      { error: "No se pudieron cargar los torneos" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   const storeId = await getAdminStoreId();
   if (!storeId) {
@@ -57,7 +82,8 @@ export async function POST(request: Request) {
       decklistDeadlineAt?: string;
       slug?: string;
       entryFeeCents?: number;
-      /** Zona del navegador al crear (ej. America/Santiago). */
+      maxPlayers?: number;
+      price?: number;
       clientTimeZone?: string;
     };
 
@@ -69,6 +95,8 @@ export async function POST(request: Request) {
       slug: customSlug,
       clientTimeZone,
       entryFeeCents,
+      maxPlayers,
+      price,
     } = body;
 
     if (!name || !startsAt || !decklistDeadlineAt) {
@@ -78,7 +106,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await connectDB();
+    await dbConnect();
 
     const store = await Store.findById(storeId);
     if (!store) {
@@ -105,7 +133,7 @@ export async function POST(request: Request) {
     }
 
     await Event.updateMany(
-      { storeId, status: "open" },
+      { storeId, status: { $in: ["open", "Active"] } },
       { $set: { status: "closed" } }
     );
 
@@ -129,6 +157,9 @@ export async function POST(request: Request) {
       decklistDeadlineAt: deadline,
       status: "open",
       entryFeeCents: fee,
+      maxPlayers:
+        typeof maxPlayers === "number" ? Math.max(0, maxPlayers) : null,
+      price: typeof price === "number" ? Math.max(0, price) : fee,
     });
 
     return NextResponse.json({ event }, { status: 201 });
