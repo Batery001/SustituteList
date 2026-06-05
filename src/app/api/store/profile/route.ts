@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/db";
 import { slugify } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { applyTransbankEnvToStore } from "@/lib/sync-transbank-env";
-import { isTransbankConfigured } from "@/lib/transbank";
+import { isTransbankConfigured, isWebpayTestMode } from "@/lib/transbank";
 import { Store } from "@/models/Store";
 
 export async function GET() {
@@ -34,12 +34,7 @@ export async function GET() {
       description: store.description ?? "",
       defaultEntryFeeCents: store.defaultEntryFeeCents ?? 0,
       onlinePaymentsEnabled: store.onlinePaymentsEnabled !== false,
-      transbankCommerceCode: store.transbankCommerceCode ?? "",
-      transbankEnvironment:
-        store.transbankEnvironment === "production"
-          ? "production"
-          : "integration",
-      hasTransbankApiKey: Boolean(store.transbankApiKey?.trim()),
+      webpayTestMode: isWebpayTestMode(),
       webpayReady: isTransbankConfigured(store),
     },
   });
@@ -61,9 +56,6 @@ export async function PUT(request: Request) {
       phone?: string;
       description?: string;
       defaultEntryFeeCents?: number;
-      transbankCommerceCode?: string;
-      transbankApiKey?: string;
-      transbankEnvironment?: "integration" | "production";
       onlinePaymentsEnabled?: boolean;
     };
 
@@ -82,20 +74,11 @@ export async function PUT(request: Request) {
     if (typeof body.defaultEntryFeeCents === "number") {
       store.defaultEntryFeeCents = Math.max(0, Math.round(body.defaultEntryFeeCents));
     }
-    if (body.transbankCommerceCode !== undefined) {
-      store.transbankCommerceCode = body.transbankCommerceCode.trim();
-    }
-    if (body.transbankApiKey?.trim()) {
-      store.transbankApiKey = body.transbankApiKey.trim();
-    }
-    if (
-      body.transbankEnvironment === "production" ||
-      body.transbankEnvironment === "integration"
-    ) {
-      store.transbankEnvironment = body.transbankEnvironment;
-    }
     if (typeof body.onlinePaymentsEnabled === "boolean") {
       store.onlinePaymentsEnabled = body.onlinePaymentsEnabled;
+    }
+    if (isWebpayTestMode()) {
+      store.transbankEnvironment = "integration";
     }
 
     if (body.slug?.trim()) {
@@ -119,7 +102,7 @@ export async function PUT(request: Request) {
         phone: store.phone,
         description: store.description,
         defaultEntryFeeCents: store.defaultEntryFeeCents,
-        transbankEnvironment: store.transbankEnvironment,
+        onlinePaymentsEnabled: store.onlinePaymentsEnabled !== false,
       },
     });
   } catch (err) {

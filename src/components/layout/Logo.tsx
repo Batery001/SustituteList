@@ -4,9 +4,9 @@ import Link from "next/link";
 type LogoSize = "sm" | "md" | "lg";
 
 const sizes: Record<LogoSize, { box: string; img: number }> = {
-  sm: { box: "h-9 w-9", img: 36 },
-  md: { box: "h-12 w-12", img: 48 },
-  lg: { box: "h-16 w-16", img: 64 },
+  sm: { box: "h-10 w-9", img: 40 },
+  md: { box: "h-14 w-12", img: 56 },
+  lg: { box: "h-[4.75rem] w-[3.25rem]", img: 76 },
 };
 
 interface LogoProps {
@@ -28,13 +28,13 @@ export function Logo({
 
   const content = (
     <>
-      <div className={`relative shrink-0 ${box}`}>
+      <div className={`relative shrink-0 overflow-visible ${box}`}>
         <Image
           src="/substitute-hero.png"
           alt="Substitute List"
-          width={img}
-          height={img}
-          className="h-full w-full object-contain drop-shadow-[0_0_16px_rgba(56,189,248,0.5)]"
+          fill
+          className="object-contain object-center drop-shadow-[0_0_16px_rgba(56,189,248,0.5)]"
+          sizes={`${img}px`}
           priority
         />
       </div>

@@ -19,12 +19,8 @@ export function StoreProfileForm() {
     description: "",
     defaultEntryFeeCents: 0,
     onlinePaymentsEnabled: true,
-    transbankCommerceCode: "",
-    transbankApiKey: "",
-    transbankEnvironment: "integration" as "integration" | "production",
   });
-  const [hasTransbankApiKey, setHasTransbankApiKey] = useState(false);
-  const [webpayReady, setWebpayReady] = useState(false);
+  const [webpayTestMode, setWebpayTestMode] = useState(true);
 
   useEffect(() => {
     fetch("/api/store/profile")
@@ -32,11 +28,17 @@ export function StoreProfileForm() {
       .then((data) => {
         if (data.store) {
           setForm({
-            ...data.store,
-            transbankApiKey: "",
+            name: data.store.name ?? "",
+            slug: data.store.slug ?? "",
+            timezone: data.store.timezone ?? "America/Santiago",
+            address: data.store.address ?? "",
+            city: data.store.city ?? "",
+            phone: data.store.phone ?? "",
+            description: data.store.description ?? "",
+            defaultEntryFeeCents: data.store.defaultEntryFeeCents ?? 0,
+            onlinePaymentsEnabled: data.store.onlinePaymentsEnabled !== false,
           });
-          setHasTransbankApiKey(data.store.hasTransbankApiKey);
-          setWebpayReady(data.store.webpayReady ?? false);
+          setWebpayTestMode(data.store.webpayTestMode !== false);
         }
         setLoading(false);
       });
@@ -58,7 +60,6 @@ export function StoreProfileForm() {
       return;
     }
     setMessage("Perfil guardado");
-    if (form.transbankApiKey) setHasTransbankApiKey(true);
     router.refresh();
   }
 
@@ -118,11 +119,11 @@ export function StoreProfileForm() {
 
       <fieldset className="sub-panel space-y-3 rounded-xl p-4">
         <legend className="text-sm font-semibold text-sky-200">
-          Transbank Webpay Plus{" "}
-          {webpayReady ? (
-            <span className="text-emerald-400">· activo</span>
+          Pago online (Webpay)
+          {webpayTestMode ? (
+            <span className="text-amber-400"> · modo prueba</span>
           ) : (
-            <span className="text-amber-400">· falta configurar</span>
+            <span className="text-emerald-400"> · activo</span>
           )}
         </legend>
         <label className="flex items-center gap-2 text-sm text-sky-200/80">
@@ -136,63 +137,13 @@ export function StoreProfileForm() {
           />
           Permitir pago online
         </label>
-        <label className="block text-xs text-zinc-400">
-          Código de comercio
-          <input
-            type="text"
-            placeholder="597055555532 (pruebas)"
-            value={form.transbankCommerceCode}
-            onChange={(e) =>
-              setForm({ ...form, transbankCommerceCode: e.target.value })
-            }
-            className="sub-input mt-1 w-full px-3 py-2 text-sm font-mono"
-          />
-        </label>
-        <label className="block text-xs text-zinc-400">
-          API Key (llave secreta){" "}
-          {hasTransbankApiKey && (
-            <span className="text-emerald-400">(ya guardada)</span>
-          )}
-          <input
-            type="password"
-            placeholder="Dejar vacío para no cambiar"
-            value={form.transbankApiKey}
-            onChange={(e) =>
-              setForm({ ...form, transbankApiKey: e.target.value })
-            }
-            className="sub-input mt-1 w-full px-3 py-2 text-sm font-mono"
-          />
-        </label>
-        <label className="block text-xs text-zinc-400">
-          Ambiente
-          <select
-            value={form.transbankEnvironment}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                transbankEnvironment: e.target.value as
-                  | "integration"
-                  | "production",
-              })
-            }
-            className="sub-input mt-1 w-full px-3 py-2 text-sm"
-          >
-            <option value="integration">Integración (pruebas)</option>
-            <option value="production">Producción</option>
-          </select>
-        </label>
-        <p className="text-xs text-sky-100/35">
-          Credenciales en{" "}
-          <a
-            href="https://www.transbankdevelopers.cl"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            transbankdevelopers.cl
-          </a>
-          . También puedes usar TRANSBANK_* en Vercel como respaldo global.
-        </p>
+        {webpayTestMode && (
+          <p className="text-xs text-sky-100/45">
+            Webpay está en ambiente de integración (sandbox). Usa las
+            credenciales de prueba de Transbank; no se procesan pagos reales.
+            La configuración de producción se habilitará más adelante.
+          </p>
+        )}
       </fieldset>
 
       <label className="block text-xs text-zinc-400">

@@ -88,26 +88,32 @@ export function OnlinePaymentPanel({
 
       {showWebpay && (
         <div className="space-y-2">
+          <p className="rounded-lg border border-amber-500/30 bg-amber-950/40 p-3 text-xs text-amber-200">
+            <strong>Modo prueba.</strong> El pago usa el sandbox de Transbank.
+            Tarjeta de prueba:{" "}
+            <span className="font-mono">4051 8856 0044 6623</span> · CVV{" "}
+            <span className="font-mono">123</span> · cualquier fecha futura.
+            No se cobra dinero real.
+          </p>
           {!onlinePaymentsAvailable && (
             <p className="rounded-lg border border-amber-500/30 bg-amber-950/40 p-3 text-xs text-amber-200">
               El pago online aún no está activado en esta tienda. Puedes pagar
-              en local o pedir al staff que configure Webpay en el panel (
-              <span className="font-mono">Admin → Perfil tienda</span>).
+              en local.
             </p>
           )}
           <Button
             type="button"
             onClick={payOnline}
-            disabled={loading}
+            disabled={loading || !onlinePaymentsAvailable}
             className="w-full"
           >
             {loading
               ? "Conectando con Webpay…"
-              : "Pagar con Transbank Webpay"}
+              : "Pagar con Webpay (prueba)"}
           </Button>
           <p className="text-xs text-sky-100/40">
-            Tarjetas de crédito y débito. Te llevamos al checkout seguro de
-            Transbank.
+            Ambiente de integración Transbank. Producción se habilitará más
+            adelante.
           </p>
         </div>
       )}

@@ -24,7 +24,7 @@ export function PageShell({
 
   return (
     <div className={`mx-auto min-h-full ${widthClass}`}>
-      <header className="no-print sticky top-0 z-20 border-b border-sky-500/20 bg-[#060b14]/95 backdrop-blur-md">
+      <header className="no-print sticky top-0 z-20 overflow-visible border-b border-sky-500/20 bg-[#060b14]/95 backdrop-blur-md">
         <BrandHeader subtitle={subtitle ?? DEFAULT_SUBTITLES[area]} />
         <AppNav area={area} />
       </header>

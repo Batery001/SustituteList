@@ -8,6 +8,18 @@ export interface TransbankCredentials {
   environment: TransbankEnvironment;
 }
 
+/** Credenciales públicas del sandbox de Transbank (integración). */
+export const TRANSBANK_INTEGRATION_DEFAULTS = {
+  commerceCode: "597055555532",
+  apiKey:
+    "579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C",
+} as const;
+
+/** Mientras sea true, solo se usa el ambiente de pruebas (sin producción). */
+export function isWebpayTestMode(): boolean {
+  return process.env.WEBPAY_TEST_ONLY !== "false";
+}
+
 const HOSTS: Record<TransbankEnvironment, string> = {
   integration: "https://webpay3gint.transbank.cl",
   production: "https://webpay3g.transbank.cl",
@@ -18,6 +30,20 @@ export function getTransbankCredentials(store?: {
   transbankApiKey?: string | null;
   transbankEnvironment?: string | null;
 } | null): TransbankCredentials | null {
+  if (isWebpayTestMode()) {
+    return {
+      commerceCode:
+        store?.transbankCommerceCode?.trim() ||
+        process.env.TRANSBANK_COMMERCE_CODE?.trim() ||
+        TRANSBANK_INTEGRATION_DEFAULTS.commerceCode,
+      apiKey:
+        store?.transbankApiKey?.trim() ||
+        process.env.TRANSBANK_API_KEY?.trim() ||
+        TRANSBANK_INTEGRATION_DEFAULTS.apiKey,
+      environment: "integration",
+    };
+  }
+
   const commerceCode =
     store?.transbankCommerceCode?.trim() ||
     process.env.TRANSBANK_COMMERCE_CODE?.trim();
@@ -40,6 +66,7 @@ export function getTransbankCredentials(store?: {
 export function isTransbankConfigured(
   store?: Parameters<typeof getTransbankCredentials>[0]
 ): boolean {
+  if (isWebpayTestMode()) return true;
   return getTransbankCredentials(store) !== null;
 }
 

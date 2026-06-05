@@ -52,7 +52,7 @@ export const msg = {
     storeRegisterFailed: "No se pudo registrar la tienda",
     profileUpdateFailed: "No se pudo actualizar el perfil",
     transbankNotConfigured:
-      "Webpay no configurado. Añade código de comercio y API Key en el perfil de tienda o en Vercel (TRANSBANK_*).",
+      "Webpay no disponible. Activa el pago online en el perfil de tienda.",
     onlinePaymentsDisabled: "La tienda no tiene activado el pago online",
     paymentCreateFailed: "No se pudo iniciar el pago online",
     deckNameAndListRequired: "Nombre del mazo y lista son obligatorios",

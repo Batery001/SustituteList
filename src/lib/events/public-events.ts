@@ -1,10 +1,9 @@
 import { headers } from "next/headers";
 import type { PublicEventDTO, EventStatus, EventType } from "@/types/models";
 import { dbConnect } from "@/lib/dbConnect";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { Event } from "@/models/Event";
 import type { IStore } from "@/models/Store";
-
-const ACTIVE_STATUSES = ["Active", "open"] as const;
 
 function mapEventStatus(raw: string): EventStatus {
   if (raw === "Active" || raw === "open") return "Active";
@@ -59,11 +58,7 @@ function serializePublicEvent(event: PopulatedEvent): PublicEventDTO {
 export async function getActivePublicEvents(): Promise<PublicEventDTO[]> {
   await dbConnect();
 
-  const now = new Date();
-  const events = await Event.find({
-    status: { $in: ACTIVE_STATUSES },
-    startsAt: { $gte: now },
-  })
+  const events = await Event.find(OPEN_EVENT_QUERY)
     .sort({ startsAt: 1 })
     .populate<{ storeId: IStore }>("storeId")
     .lean();
