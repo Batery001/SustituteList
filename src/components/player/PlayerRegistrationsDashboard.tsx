@@ -71,7 +71,6 @@ function RegistrationCard({ reg }: { reg: PlayerRegistrationRow }) {
             {reg.hasDecklist && reg.deckEditToken && (
               <DownloadDeckPdfButton
                 token={reg.deckEditToken}
-                label="PDF"
                 className="px-2 py-1.5 text-xs"
               />
             )}

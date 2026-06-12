@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function DownloadDeckPdfButton({
   token,
-  label = "Descargar PDF",
+  label = "Ver PDF",
   className = "",
   variant = "button",
 }: {

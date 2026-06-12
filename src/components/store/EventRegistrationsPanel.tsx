@@ -275,7 +275,6 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                       {r.deckEditToken && (
                         <DownloadDeckPdfButton
                           token={r.deckEditToken}
-                          label="PDF"
                           className="px-2 py-1 text-xs"
                         />
                       )}
