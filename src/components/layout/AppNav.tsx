@@ -83,6 +83,12 @@ export function AppNav({ area }: { area: Area }) {
             Panel
           </NavLink>
           <NavLink
+            href={routes.store.newEvent}
+            active={pathname === routes.store.newEvent}
+          >
+            + Nuevo torneo
+          </NavLink>
+          <NavLink
             href={routes.store.profile}
             active={pathname === routes.store.profile}
           >
@@ -156,7 +162,10 @@ export function AppNav({ area }: { area: Area }) {
           </NavLink>
           <NavLink
             href={routes.player.home}
-            active={pathname === routes.player.home}
+            active={
+              pathname === routes.player.home ||
+              pathname.startsWith("/dashboard/player/upload/")
+            }
           >
             Inscripciones
           </NavLink>

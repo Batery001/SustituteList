@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 type AccountType = "PLAYER" | "STORE";
 
 function AuthRegisterFormInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
 
@@ -74,16 +73,17 @@ function AuthRegisterFormInner() {
     setLoading(false);
 
     if (signInResult?.error) {
-      router.push("/auth/login");
+      setLoading(false);
+      setError("Cuenta creada. Inicia sesión con tu correo y contraseña.");
       return;
     }
 
-    router.push(
+    const destination =
       callbackUrl && callbackUrl.startsWith("/")
         ? callbackUrl
-        : (data.redirect ?? "/")
-    );
-    router.refresh();
+        : (data.redirect ?? "/");
+
+    window.location.assign(destination);
   }
 
   return (

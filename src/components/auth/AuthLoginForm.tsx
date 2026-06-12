@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { UserRole } from "@/types/models";
@@ -13,7 +13,6 @@ function defaultDashboard(role: UserRole) {
 }
 
 function AuthLoginFormInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
   const recovered = searchParams.get("recovered") === "1";
@@ -51,8 +50,7 @@ function AuthLoginFormInner() {
         ? callbackUrl
         : defaultDashboard(session.user?.role ?? "PLAYER");
 
-    router.push(destination);
-    router.refresh();
+    window.location.assign(destination);
   }
 
   return (

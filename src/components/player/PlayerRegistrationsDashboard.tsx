@@ -130,24 +130,6 @@ export function PlayerRegistrationsDashboard({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs">
-        <Link
-          href="/dashboard/player/decks"
-          className="rounded-lg border border-sky-500/20 px-3 py-1.5 text-sky-200"
-        >
-          Mazos guardados
-        </Link>
-        <Link
-          href="/dashboard/player/profile"
-          className="rounded-lg px-3 py-1.5 text-sky-100/50 hover:text-sky-200"
-        >
-          Mi cuenta
-        </Link>
-        <Link href="/" className="rounded-lg px-3 py-1.5 text-sky-100/50">
-          Hub
-        </Link>
-      </div>
-
       <RegistrationSection
         title="Mis torneos activos"
         empty="No tienes inscripciones en torneos activos. Explora el hub para inscribirte."

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 function formatFee(pesos: number): string {
@@ -37,6 +37,19 @@ export function OnlinePaymentPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const onRefreshRef = useRef(onRefresh);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
+  useEffect(() => {
+    if (!onRefresh) return;
+    const interval = setInterval(() => {
+      onRefreshRef.current?.();
+    }, 20_000);
+    return () => clearInterval(interval);
+  }, [onRefresh]);
 
   const showWebpay =
     entryFeeCents > 0 && onlinePaymentsEnabled !== false;
@@ -123,7 +136,12 @@ export function OnlinePaymentPanel({
       <div className="border-t border-sky-500/15 pt-4">
         <p className="font-medium text-sky-100/80">O paga en tienda</p>
         <p className="mt-1 text-sky-100/55">
-          En <strong>{storeName}</strong> el staff confirmará tu pago manualmente.
+          Paga en <strong>{storeName}</strong> y el staff marcará tu inscripción
+          como pagada desde su panel de torneo (botón «Marcar pagado»).
+        </p>
+        <p className="mt-2 text-xs text-sky-100/45">
+          Esta página se actualiza sola cada 20 s, o toca «Actualizar estado»
+          cuando el local confirme tu pago.
         </p>
         {(storeAddress || storeCity) && (
           <p className="mt-2 text-sky-100/45">
