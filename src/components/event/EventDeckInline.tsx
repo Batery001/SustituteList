@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DecklistTextarea } from "@/components/DecklistTextarea";
+import { TournamentDeckEditor } from "@/components/deck/TournamentDeckEditor";
 import { DeckView } from "@/components/DeckView";
 import { Button } from "@/components/ui/Button";
 import type { Division } from "@/lib/division";
@@ -38,7 +38,6 @@ export function EventDeckInline({
   deadlineLabel: string;
 }) {
   const [data, setData] = useState<DeckData | null>(null);
-  const [rawText, setRawText] = useState("");
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,7 +53,6 @@ export function EventDeckInline({
     }
     const json = (await res.json()) as DeckData;
     setData(json);
-    setRawText(json.submission.rawText);
     setLoading(false);
   }, [deckEditToken]);
 
@@ -70,7 +68,6 @@ export function EventDeckInline({
       }
       const json = (await res.json()) as DeckData;
       setData(json);
-      setRawText(json.submission.rawText);
       setLoading(false);
     })();
     return () => {
@@ -78,7 +75,7 @@ export function EventDeckInline({
     };
   }, [deckEditToken]);
 
-  async function handleSave() {
+  async function handleSave(rawText: string) {
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -141,7 +138,7 @@ export function EventDeckInline({
               setSaved(false);
             }}
           >
-            Editar lista
+            Cambiar lista
           </Button>
         )}
         {!event.canEdit && (
@@ -154,34 +151,16 @@ export function EventDeckInline({
   }
 
   return (
-    <div className="space-y-4">
-      <DecklistTextarea value={rawText} onChange={setRawText} />
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {saved && (
-        <p className="text-sm text-emerald-400">Lista actualizada correctamente.</p>
-      )}
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="ghost"
-          className="flex-1"
-          onClick={() => {
-            setRawText(submission.rawText);
-            setMode("view");
-            setError(null);
-          }}
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          className="flex-1"
-          disabled={saving}
-          onClick={handleSave}
-        >
-          {saving ? "Guardando…" : "Guardar cambios"}
-        </Button>
-      </div>
-    </div>
+    <TournamentDeckEditor
+      initialRawText={submission.rawText}
+      onSave={handleSave}
+      onCancel={() => {
+        setMode("view");
+        setError(null);
+      }}
+      saving={saving}
+      error={error}
+      saved={saved}
+    />
   );
 }

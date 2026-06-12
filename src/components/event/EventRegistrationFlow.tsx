@@ -442,7 +442,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
               Lista enviada
             </p>
             <p className="mt-1 text-sm text-sky-100/55">
-              La tienda ya tiene tu mazo. Puedes editarlo aquí hasta{" "}
+              La tienda ya tiene tu mazo. Puedes cambiarlo aquí hasta{" "}
               {deadlineLabel}.
             </p>
           </div>
