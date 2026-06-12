@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
   addSearchResultToDeck,
-  changeSlotQty,
   deckSlotsToRawText,
   deckTotal,
-  expandSlotsForStrip,
   getDeckLegality,
   importRawTextToSlots,
   removeSlot,
@@ -33,51 +31,74 @@ const TYPE_FILTERS: { id: DeckTypeFilter; label: string }[] = [
   { id: "energy", label: "Energías" },
 ];
 
-const STRIP_SLOTS = 60;
+/** Cartas visibles en la fila de búsqueda (resultados + reversos de relleno). */
+const SEARCH_ROW_SLOTS = 60;
 
 function CardBackPlaceholder() {
   return (
     <div
-      className="flex h-[4.5rem] w-[3.25rem] shrink-0 items-center justify-center rounded border border-sky-600/25 bg-gradient-to-br from-sky-950/80 to-sky-900/40"
+      className="h-[5.5rem] w-[4rem] shrink-0 rounded-sm border border-zinc-600/40 bg-gradient-to-br from-zinc-700/80 to-zinc-800/90"
       aria-hidden
-    >
-      <div className="h-6 w-6 rounded-full border-2 border-sky-500/30 bg-sky-800/50" />
-    </div>
+    />
   );
 }
 
-function CardThumb({
-  slot,
-  onClick,
-  title,
+function formatCardCode(card: { setCode?: string; number?: string }): string {
+  if (card.setCode && card.number) return `${card.setCode}-${card.number}`;
+  if (card.setCode) return card.setCode;
+  return "";
+}
+
+function SearchResultCard({
+  card,
+  onAdd,
+  disabled,
 }: {
-  slot?: DeckBuilderSlot;
-  onClick?: () => void;
-  title?: string;
+  card: CardSearchResult;
+  onAdd: () => void;
+  disabled?: boolean;
 }) {
-  if (!slot) return <CardBackPlaceholder />;
-  const Tag = onClick ? "button" : "div";
+  const code = formatCardCode(card);
   return (
-    <Tag
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      title={title ?? `${slot.name} — clic para quitar 1`}
-      className="relative h-[4.5rem] w-[3.25rem] shrink-0 overflow-hidden rounded border border-sky-500/30 bg-sky-950/50 transition hover:border-rose-400/50 hover:ring-1 hover:ring-rose-400/30"
+    <button
+      type="button"
+      onClick={onAdd}
+      disabled={disabled}
+      title={code ? `${card.name} (${code})` : card.name}
+      className="h-[5.5rem] w-[4rem] shrink-0 overflow-hidden rounded-sm border border-sky-500/30 bg-sky-950/40 transition hover:border-teal-400/50 hover:ring-2 hover:ring-teal-400/30 disabled:cursor-not-allowed disabled:opacity-40"
     >
-      {slot.image ? (
+      {card.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={`${slot.image}/low.webp`}
-          alt={slot.name}
+          src={`${card.image}/low.webp`}
+          alt={card.name}
           className="h-full w-full object-cover"
           loading="lazy"
         />
       ) : (
-        <div className="flex h-full items-center justify-center p-0.5 text-center text-[7px] leading-tight text-sky-200">
-          {slot.name}
+        <div className="flex h-full items-center justify-center p-1 text-center text-[8px] leading-tight text-sky-200">
+          {card.name}
         </div>
       )}
-    </Tag>
+    </button>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className="h-4 w-4 shrink-0 text-sky-100/35"
+      aria-hidden
+    >
+      <path
+        fillRule="evenodd"
+        d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 8.519A2.75 2.75 0 007.596 17h4.807a2.75 2.75 0 002.742-2.53l.841-8.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.28 0 .502.214.512.483l.001 1.017a.75.75 0 01-1.002.711L9.5 6.5v-.517A.512.512 0 0110 4zM8.25 6.5v.517l.001 1.017a.75.75 0 01-1.002.711L7.25 8.25V6.5h1zm3.5 0v1.75a.75.75 0 01-1.002.711L10.5 8.267V6.5h1.25z"
+        clipRule="evenodd"
+      />
+    </svg>
   );
 }
 
@@ -111,7 +132,6 @@ export function DeckBuilder({
     () => getDeckLegality(slots, format),
     [slots, format]
   );
-  const stripCards = useMemo(() => expandSlotsForStrip(slots), [slots]);
 
   const runSearch = useCallback(async () => {
     if (query.trim().length < 1) {
@@ -140,27 +160,9 @@ export function DeckBuilder({
     return () => clearTimeout(t);
   }, [runSearch]);
 
-  function qtyInDeck(card: CardSearchResult): number {
-    return (
-      slots.find(
-        (s) =>
-          s.tcgdexId === card.id ||
-          (s.name === card.name &&
-            s.setCode === card.setCode &&
-            s.number === card.number)
-      )?.qty ?? 0
-    );
-  }
-
   function handleAddCard(card: CardSearchResult) {
     if (total >= 60) return;
     setSlots((prev) => addSearchResultToDeck(prev, card));
-  }
-
-  function handleStripClick(index: number) {
-    const card = stripCards[index];
-    if (!card) return;
-    setSlots((prev) => changeSlotQty(prev, card.key, -1));
   }
 
   function handleRowRemove(key: string) {
@@ -231,11 +233,8 @@ export function DeckBuilder({
     setSaveOpen(true);
   }
 
-  const allRows = [
-    ...grouped.pokemon,
-    ...grouped.trainer,
-    ...grouped.energy,
-  ];
+  const hasQuery = query.trim().length > 0;
+  const fillerCount = Math.max(0, SEARCH_ROW_SLOTS - results.length);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -249,10 +248,9 @@ export function DeckBuilder({
         </button>
       )}
 
-      {/* Import + tips (RK9) */}
       <div className="sub-panel rounded-xl p-4">
         <p className="text-sm text-sky-100/70">
-          Elegí cartas abajo con la búsqueda, o{" "}
+          Elegí cartas en la fila de búsqueda, o{" "}
           <button
             type="button"
             onClick={() => setPasteOpen(true)}
@@ -263,12 +261,11 @@ export function DeckBuilder({
         </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-sky-100/50">
           <li>Tocá una carta en los resultados para sumar copias</li>
-          <li>Tocá una carta en la tira o una fila de la lista para quitar</li>
+          <li>Tocá una fila de la lista de abajo para quitar esa carta</li>
           <li>Usá «Vaciar mazo» para empezar de cero</li>
         </ul>
       </div>
 
-      {/* Formato + tipo */}
       <div className="sub-panel flex flex-wrap items-end gap-4 rounded-xl p-4">
         <label className="text-sm">
           <span className="mb-1 block text-sky-200/70">Idioma de cartas</span>
@@ -321,7 +318,7 @@ export function DeckBuilder({
         </div>
       </div>
 
-      {/* Búsqueda ancha */}
+      {/* Búsqueda */}
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sky-400/60">
           ⌕
@@ -330,94 +327,58 @@ export function DeckBuilder({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Nombre de carta"
+          placeholder="Card name"
           className="sub-input w-full border-amber-500/40 py-3 pl-9 pr-3 text-base shadow-[0_0_0_1px_rgba(251,191,36,0.15)] focus:border-amber-400/60"
           autoComplete="off"
           spellCheck={false}
         />
-        {query.trim().length > 0 && (
-          <div className="sub-panel absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-sky-500/25 p-2 shadow-xl">
-            {searching ? (
-              <p className="px-2 py-3 text-sm text-sky-100/50">Buscando…</p>
-            ) : results.length === 0 ? (
-              <p className="px-2 py-3 text-sm text-sky-100/50">Sin resultados</p>
-            ) : (
-              <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-                {results.map((card) => {
-                  const inDeck = qtyInDeck(card);
-                  return (
-                    <li key={card.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleAddCard(card)}
-                        disabled={total >= 60}
-                        className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left hover:bg-sky-900/50 disabled:opacity-40"
-                      >
-                        {card.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`${card.image}/low.webp`}
-                            alt=""
-                            className="h-14 w-10 shrink-0 rounded object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="h-14 w-10 shrink-0 rounded bg-sky-900/50" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-medium text-sky-50">
-                            {card.name}
-                          </p>
-                          <p className="font-mono text-[10px] text-sky-100/40">
-                            {card.setCode
-                              ? `${card.setCode} ${card.number ?? ""}`.trim()
-                              : "—"}
-                            {inDeck > 0 && (
-                              <span className="ml-1 text-teal-400">×{inDeck}</span>
-                            )}
-                          </p>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Tira visual 60 cartas (RK9) */}
+      {/* Fila horizontal = RESULTADOS de búsqueda (RK9) */}
       <div className="sub-panel overflow-hidden rounded-xl p-3">
+        {searching && hasQuery && (
+          <p className="mb-2 text-xs text-sky-100/45">Buscando…</p>
+        )}
+        {hasQuery && !searching && results.length === 0 && (
+          <p className="mb-2 text-xs text-sky-100/45">Sin resultados</p>
+        )}
         <div className="flex gap-1 overflow-x-auto pb-1">
-          {Array.from({ length: STRIP_SLOTS }, (_, i) => (
-            <CardThumb
-              key={i}
-              slot={stripCards[i]}
-              onClick={stripCards[i] ? () => handleStripClick(i) : undefined}
-            />
+          {hasQuery
+            ? results.map((card) => (
+                <SearchResultCard
+                  key={card.id}
+                  card={card}
+                  onAdd={() => handleAddCard(card)}
+                  disabled={total >= 60}
+                />
+              ))
+            : null}
+          {Array.from({
+            length: hasQuery ? fillerCount : SEARCH_ROW_SLOTS,
+          }).map((_, i) => (
+            <CardBackPlaceholder key={`back-${i}`} />
           ))}
         </div>
 
-        {/* Contadores + legalidad */}
+        {/* Contadores */}
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sky-500/15 pt-3 text-sm">
           <span className="text-sky-100/80">
+            Pokémon:{" "}
             <strong className="font-semibold text-sky-50">
               {grouped.totals.pokemon}
-            </strong>{" "}
-            Pokémon
+            </strong>
           </span>
           <span className="text-sky-100/80">
+            Entrenador:{" "}
             <strong className="font-semibold text-sky-50">
               {grouped.totals.trainer}
-            </strong>{" "}
-            Entrenador
+            </strong>
           </span>
           <span className="text-sky-100/80">
+            Energía:{" "}
             <strong className="font-semibold text-sky-50">
               {grouped.totals.energy}
-            </strong>{" "}
-            Energía
+            </strong>
           </span>
           <span className="text-sky-100/80">
             Total:{" "}
@@ -430,7 +391,7 @@ export function DeckBuilder({
             </strong>
           </span>
           <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            className={`rounded px-2 py-0.5 text-xs font-medium ${
               legality.legal
                 ? "bg-emerald-500/20 text-emerald-300"
                 : "bg-amber-500/20 text-amber-200"
@@ -441,37 +402,36 @@ export function DeckBuilder({
         </div>
       </div>
 
-      {/* Lista textual — tap fila para quitar */}
-      {allRows.length > 0 && (
-        <div className="sub-panel rounded-xl p-3">
-          <p className="mb-2 text-xs text-sky-100/45">
-            Lista del mazo — tocá una fila para quitar esa carta
+      {/* Lista del mazo que se va armando (RK9) */}
+      <div className="sub-panel min-h-[8rem] rounded-xl p-2">
+        {slots.length === 0 ? (
+          <p className="px-2 py-6 text-center text-sm text-sky-100/35">
+            La lista aparecerá aquí al agregar cartas desde la búsqueda.
           </p>
-          <ul className="divide-y divide-sky-900/40 text-sm">
-            {allRows.map((s) => (
-              <li key={s.key}>
-                <button
-                  type="button"
-                  onClick={() => handleRowRemove(s.key)}
-                  className="flex w-full items-baseline gap-3 px-2 py-2 text-left hover:bg-rose-950/20"
-                >
-                  <span className="w-6 font-mono font-bold text-sky-400">
-                    {s.qty}
-                  </span>
-                  <span className="flex-1 text-sky-100">{s.name}</span>
-                  {s.setCode && (
-                    <span className="font-mono text-xs text-sky-100/35">
-                      {s.setCode} {s.number}
+        ) : (
+          <ul>
+            {slots.map((s) => {
+              const code = formatCardCode(s);
+              const label = code ? `${s.name} (${code})` : s.name;
+              return (
+                <li key={s.key}>
+                  <button
+                    type="button"
+                    onClick={() => handleRowRemove(s.key)}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-rose-950/25"
+                  >
+                    <TrashIcon />
+                    <span className="font-medium text-sky-50">
+                      {s.qty} {label}
                     </span>
-                  )}
-                </button>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Acciones */}
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
