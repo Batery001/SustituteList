@@ -128,6 +128,51 @@ export function changeSlotQty(
   return copy;
 }
 
+/** Cartas expandidas (una por copia) para la tira visual tipo RK9. */
+export function expandSlotsForStrip(slots: DeckBuilderSlot[]): DeckBuilderSlot[] {
+  return slots.flatMap((s) => Array.from({ length: s.qty }, () => s));
+}
+
+export function removeSlot(
+  slots: DeckBuilderSlot[],
+  key: string
+): DeckBuilderSlot[] {
+  return slots.filter((s) => s.key !== key);
+}
+
+export function getDeckLegality(
+  slots: DeckBuilderSlot[],
+  format: DeckFormat
+): { legal: boolean; message: string } {
+  const total = deckTotal(slots);
+  const formatLabel =
+    format === "standard"
+      ? "Standard"
+      : format === "expanded"
+        ? "Expanded"
+        : "GLC";
+
+  if (total !== 60) {
+    return {
+      legal: false,
+      message: `Mazo ${formatLabel} aún no legal`,
+    };
+  }
+
+  const parsed = parsePokemonDecklist(deckSlotsToRawText(slots));
+  if (!parsed.isValid) {
+    return {
+      legal: false,
+      message: parsed.errors[0] ?? `Mazo ${formatLabel} aún no legal`,
+    };
+  }
+
+  return {
+    legal: true,
+    message: `Mazo ${formatLabel} legal`,
+  };
+}
+
 export function addSearchResultToDeck(
   slots: DeckBuilderSlot[],
   card: CardSearchResult,

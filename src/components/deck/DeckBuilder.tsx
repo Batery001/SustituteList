@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import {
@@ -8,7 +8,10 @@ import {
   changeSlotQty,
   deckSlotsToRawText,
   deckTotal,
+  expandSlotsForStrip,
+  getDeckLegality,
   importRawTextToSlots,
+  removeSlot,
   slotsByCategory,
   type CardSearchResult,
   type DeckBuilderSlot,
@@ -30,52 +33,62 @@ const TYPE_FILTERS: { id: DeckTypeFilter; label: string }[] = [
   { id: "energy", label: "Energías" },
 ];
 
-function QtyControls({
-  qty,
-  onDelta,
-  compact,
-}: {
-  qty: number;
-  onDelta: (d: number) => void;
-  compact?: boolean;
-}) {
+const STRIP_SLOTS = 60;
+
+function CardBackPlaceholder() {
   return (
-    <div className={`flex items-center gap-1 ${compact ? "" : "shrink-0"}`}>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelta(-1);
-        }}
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-500/25 bg-sky-950/50 text-sm font-bold text-sky-200 hover:bg-sky-900/60"
-        aria-label="Quitar una copia"
-      >
-        −
-      </button>
-      <span className="w-6 text-center font-mono text-sm font-bold text-sky-50">
-        {qty}
-      </span>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelta(1);
-        }}
-        className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-500/25 bg-sky-950/50 text-sm font-bold text-sky-200 hover:bg-sky-900/60"
-        aria-label="Añadir una copia"
-      >
-        +
-      </button>
+    <div
+      className="flex h-[4.5rem] w-[3.25rem] shrink-0 items-center justify-center rounded border border-sky-600/25 bg-gradient-to-br from-sky-950/80 to-sky-900/40"
+      aria-hidden
+    >
+      <div className="h-6 w-6 rounded-full border-2 border-sky-500/30 bg-sky-800/50" />
     </div>
+  );
+}
+
+function CardThumb({
+  slot,
+  onClick,
+  title,
+}: {
+  slot?: DeckBuilderSlot;
+  onClick?: () => void;
+  title?: string;
+}) {
+  if (!slot) return <CardBackPlaceholder />;
+  const Tag = onClick ? "button" : "div";
+  return (
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
+      title={title ?? `${slot.name} — clic para quitar 1`}
+      className="relative h-[4.5rem] w-[3.25rem] shrink-0 overflow-hidden rounded border border-sky-500/30 bg-sky-950/50 transition hover:border-rose-400/50 hover:ring-1 hover:ring-rose-400/30"
+    >
+      {slot.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`${slot.image}/low.webp`}
+          alt={slot.name}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-full items-center justify-center p-0.5 text-center text-[7px] leading-tight text-sky-200">
+          {slot.name}
+        </div>
+      )}
+    </Tag>
   );
 }
 
 export function DeckBuilder({
   onRawTextReady,
   saveRedirect = routes.player.decks,
+  showBackLink = false,
 }: {
   onRawTextReady?: (rawText: string) => void;
   saveRedirect?: string;
+  showBackLink?: boolean;
 }) {
   const router = useRouter();
   const [format, setFormat] = useState<DeckFormat>("standard");
@@ -90,10 +103,15 @@ export function DeckBuilder({
   const [deckName, setDeckName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [imageOpen, setImageOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const total = deckTotal(slots);
   const grouped = slotsByCategory(slots);
+  const legality = useMemo(
+    () => getDeckLegality(slots, format),
+    [slots, format]
+  );
+  const stripCards = useMemo(() => expandSlotsForStrip(slots), [slots]);
 
   const runSearch = useCallback(async () => {
     if (query.trim().length < 1) {
@@ -118,7 +136,7 @@ export function DeckBuilder({
   }, [query, typeFilter, format]);
 
   useEffect(() => {
-    const t = setTimeout(() => void runSearch(), 350);
+    const t = setTimeout(() => void runSearch(), 300);
     return () => clearTimeout(t);
   }, [runSearch]);
 
@@ -134,31 +152,32 @@ export function DeckBuilder({
     );
   }
 
-  function handleResultClick(card: CardSearchResult) {
+  function handleAddCard(card: CardSearchResult) {
+    if (total >= 60) return;
     setSlots((prev) => addSearchResultToDeck(prev, card));
   }
 
-  function handleResultDelta(card: CardSearchResult, delta: number) {
-    const key =
-      slots.find((s) => s.tcgdexId === card.id)?.key ??
-      `${card.name}|${card.setCode ?? ""}|${card.number ?? ""}`;
-    if (delta > 0 && qtyInDeck(card) === 0) {
-      setSlots((prev) => addSearchResultToDeck(prev, card));
-      return;
-    }
-    setSlots((prev) => changeSlotQty(prev, key, delta));
+  function handleStripClick(index: number) {
+    const card = stripCards[index];
+    if (!card) return;
+    setSlots((prev) => changeSlotQty(prev, card.key, -1));
+  }
+
+  function handleRowRemove(key: string) {
+    setSlots((prev) => removeSlot(prev, key));
   }
 
   async function handleCopy() {
-    const text = deckSlotsToRawText(slots);
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(deckSlotsToRawText(slots));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   function handlePasteImport() {
     const { slots: imported, errors } = importRawTextToSlots(pasteText);
-    if (errors.length) {
-      setError(errors.join(" "));
-      return;
+    if (errors.length && deckTotal(imported) !== 60) {
+      setError(errors.slice(0, 2).join(" "));
+      if (imported.length === 0) return;
     }
     setSlots(imported);
     setPasteOpen(false);
@@ -168,8 +187,8 @@ export function DeckBuilder({
 
   async function handleSaveDeck() {
     const rawText = deckSlotsToRawText(slots);
-    if (total !== 60) {
-      setError("El mazo debe tener exactamente 60 cartas.");
+    if (!legality.legal) {
+      setError("El mazo debe ser legal y tener 60 cartas.");
       return;
     }
     if (!deckName.trim()) {
@@ -201,6 +220,10 @@ export function DeckBuilder({
 
   function handleCreateList() {
     const rawText = deckSlotsToRawText(slots);
+    if (!legality.legal) {
+      setError("Completa un mazo legal de 60 cartas antes de crear la lista.");
+      return;
+    }
     if (onRawTextReady) {
       onRawTextReady(rawText);
       return;
@@ -208,33 +231,68 @@ export function DeckBuilder({
     setSaveOpen(true);
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="sub-panel space-y-4 rounded-xl p-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-sky-400/80">
-            Herramientas
-          </p>
-          <h2 className="text-lg font-semibold text-sky-50">Armar mazo</h2>
-          <p className="mt-1 text-xs text-sky-100/45">
-            Haz clic en un resultado para añadir cartas. Usa − / + para ajustar
-            copias. Los Pokémon llevan set; entrenadores y energías no lo
-            requieren.
-          </p>
-        </div>
+  const allRows = [
+    ...grouped.pokemon,
+    ...grouped.trainer,
+    ...grouped.energy,
+  ];
 
+  return (
+    <div className="mx-auto max-w-3xl space-y-4">
+      {showBackLink && (
+        <button
+          type="button"
+          onClick={() => router.push(routes.player.decks)}
+          className="text-sm font-medium text-sky-400 hover:underline"
+        >
+          ← Volver a mis mazos
+        </button>
+      )}
+
+      {/* Import + tips (RK9) */}
+      <div className="sub-panel rounded-xl p-4">
+        <p className="text-sm text-sky-100/70">
+          Elegí cartas abajo con la búsqueda, o{" "}
+          <button
+            type="button"
+            onClick={() => setPasteOpen(true)}
+            className="font-semibold text-rose-400 underline decoration-rose-400/50 hover:text-rose-300"
+          >
+            importá desde PTCGL
+          </button>
+        </p>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-sky-100/50">
+          <li>Tocá una carta en los resultados para sumar copias</li>
+          <li>Tocá una carta en la tira o una fila de la lista para quitar</li>
+          <li>Usá «Vaciar mazo» para empezar de cero</li>
+        </ul>
+      </div>
+
+      {/* Formato + tipo */}
+      <div className="sub-panel flex flex-wrap items-end gap-4 rounded-xl p-4">
+        <label className="text-sm">
+          <span className="mb-1 block text-sky-200/70">Idioma de cartas</span>
+          <select
+            className="sub-input px-3 py-2 text-sm"
+            defaultValue="en"
+            disabled
+            title="Próximamente más idiomas"
+          >
+            <option value="en">English</option>
+          </select>
+        </label>
         <div>
-          <p className="mb-2 text-xs font-medium text-sky-200/70">Formato</p>
-          <div className="flex flex-wrap gap-2">
+          <span className="mb-1 block text-sm text-sky-200/70">Formato</span>
+          <div className="flex flex-wrap gap-1">
             {FORMATS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setFormat(f.id)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-2.5 py-1.5 text-xs font-medium ${
                   format === f.id
-                    ? "bg-teal-600 text-white"
-                    : "border border-sky-500/20 bg-sky-950/40 text-sky-200/80 hover:bg-sky-900/50"
+                    ? "bg-sky-600 text-white"
+                    : "bg-sky-950/50 text-sky-200/70 hover:bg-sky-900/60"
                 }`}
               >
                 {f.label}
@@ -242,21 +300,18 @@ export function DeckBuilder({
             ))}
           </div>
         </div>
-
-        <div>
-          <p className="mb-2 text-xs font-medium text-sky-200/70">
-            Tipo de carta
-          </p>
-          <div className="flex flex-wrap gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="mb-1 block text-sm text-sky-200/70">Tipo</span>
+          <div className="flex flex-wrap gap-1">
             {TYPE_FILTERS.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setTypeFilter(t.id)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-md px-2.5 py-1.5 text-xs font-medium ${
                   typeFilter === t.id
                     ? "bg-teal-600 text-white"
-                    : "border border-sky-500/20 bg-sky-950/40 text-sky-200/80 hover:bg-sky-900/50"
+                    : "bg-sky-950/50 text-sky-200/70 hover:bg-sky-900/60"
                 }`}
               >
                 {t.label}
@@ -264,181 +319,186 @@ export function DeckBuilder({
             ))}
           </div>
         </div>
-
-        <label className="block">
-          <span className="sr-only">Buscar carta</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nombre de carta (ej. wooper)"
-            className="sub-input w-full px-3 py-2.5 text-sm"
-            autoComplete="off"
-            spellCheck={false}
-          />
-        </label>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Mazo */}
-        <div className="sub-panel flex min-h-[320px] flex-col rounded-xl p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-semibold text-sky-50">Mazo</h3>
-            <span
-              className={`font-mono text-sm font-bold ${
-                total === 60 ? "text-emerald-400" : "text-sky-300"
-              }`}
-            >
-              {total} / 60
-            </span>
-          </div>
-
-          <div className="mb-3 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="py-2 text-xs"
-              onClick={() => setPasteOpen(true)}
-            >
-              Pegar lista
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="py-2 text-xs"
-              disabled={slots.length === 0}
-              onClick={() => void handleCopy()}
-            >
-              Copiar listado
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="py-2 text-xs"
-              disabled={slots.length === 0}
-              onClick={() => setImageOpen(true)}
-            >
-              Ver imagen
-            </Button>
-            <Button
-              type="button"
-              className="py-2 text-xs"
-              disabled={total !== 60}
-              onClick={handleCreateList}
-            >
-              Crear lista
-            </Button>
-          </div>
-
-          {slots.length === 0 ? (
-            <p className="flex flex-1 items-center justify-center text-center text-sm text-sky-100/40">
-              El mazo está vacío. Buscá cartas a la derecha o usá «Pegar lista»
-              para importar un bloque de texto.
-            </p>
-          ) : (
-            <div className="max-h-80 space-y-3 overflow-y-auto text-sm">
-              {(
-                [
-                  ["Pokémon", grouped.pokemon, grouped.totals.pokemon],
-                  ["Entrenadores", grouped.trainer, grouped.totals.trainer],
-                  ["Energías", grouped.energy, grouped.totals.energy],
-                ] as const
-              ).map(([title, list, subtotal]) =>
-                list.length === 0 ? null : (
-                  <div key={title}>
-                    <p className="mb-1 text-xs font-semibold text-sky-400/80">
-                      {title} ({subtotal})
-                    </p>
-                    <ul className="space-y-1">
-                      {list.map((s) => (
-                        <li
-                          key={s.key}
-                          className="flex items-center gap-2 rounded-lg bg-sky-950/30 px-2 py-1"
-                        >
-                          <QtyControls
-                            qty={s.qty}
-                            onDelta={(d) =>
-                              setSlots((prev) => changeSlotQty(prev, s.key, d))
-                            }
-                            compact
+      {/* Búsqueda ancha */}
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sky-400/60">
+          ⌕
+        </span>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Nombre de carta"
+          className="sub-input w-full border-amber-500/40 py-3 pl-9 pr-3 text-base shadow-[0_0_0_1px_rgba(251,191,36,0.15)] focus:border-amber-400/60"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {query.trim().length > 0 && (
+          <div className="sub-panel absolute left-0 right-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-xl border border-sky-500/25 p-2 shadow-xl">
+            {searching ? (
+              <p className="px-2 py-3 text-sm text-sky-100/50">Buscando…</p>
+            ) : results.length === 0 ? (
+              <p className="px-2 py-3 text-sm text-sky-100/50">Sin resultados</p>
+            ) : (
+              <ul className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+                {results.map((card) => {
+                  const inDeck = qtyInDeck(card);
+                  return (
+                    <li key={card.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleAddCard(card)}
+                        disabled={total >= 60}
+                        className="flex w-full items-center gap-2 rounded-lg p-1.5 text-left hover:bg-sky-900/50 disabled:opacity-40"
+                      >
+                        {card.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={`${card.image}/low.webp`}
+                            alt=""
+                            className="h-14 w-10 shrink-0 rounded object-cover"
+                            loading="lazy"
                           />
-                          <span className="min-w-0 flex-1 truncate text-sky-100">
-                            {s.name}
-                          </span>
-                          {s.setCode && (
-                            <span className="shrink-0 font-mono text-[10px] text-sky-100/35">
-                              {s.setCode} {s.number}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              )}
-            </div>
-          )}
+                        ) : (
+                          <div className="h-14 w-10 shrink-0 rounded bg-sky-900/50" />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-sky-50">
+                            {card.name}
+                          </p>
+                          <p className="font-mono text-[10px] text-sky-100/40">
+                            {card.setCode
+                              ? `${card.setCode} ${card.number ?? ""}`.trim()
+                              : "—"}
+                            {inDeck > 0 && (
+                              <span className="ml-1 text-teal-400">×{inDeck}</span>
+                            )}
+                          </p>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tira visual 60 cartas (RK9) */}
+      <div className="sub-panel overflow-hidden rounded-xl p-3">
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {Array.from({ length: STRIP_SLOTS }, (_, i) => (
+            <CardThumb
+              key={i}
+              slot={stripCards[i]}
+              onClick={stripCards[i] ? () => handleStripClick(i) : undefined}
+            />
+          ))}
         </div>
 
-        {/* Resultados */}
-        <div className="sub-panel flex min-h-[320px] flex-col rounded-xl p-4">
-          <h3 className="mb-3 font-semibold text-sky-50">Resultados</h3>
-          {query.trim().length < 1 ? (
-            <p className="flex flex-1 flex-col items-center justify-center text-center text-sm text-sky-100/40">
-              <span className="mb-2 text-3xl opacity-30">⌕</span>
-              Escribí al menos una letra para buscar.
-            </p>
-          ) : searching ? (
-            <p className="text-sm text-sky-100/50">Buscando…</p>
-          ) : results.length === 0 ? (
-            <p className="text-sm text-sky-100/50">Sin resultados.</p>
-          ) : (
-            <ul className="max-h-80 space-y-2 overflow-y-auto">
-              {results.map((card) => {
-                const inDeck = qtyInDeck(card);
-                return (
-                  <li key={card.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleResultClick(card)}
-                      className="flex w-full items-center gap-3 rounded-lg border border-sky-500/15 bg-sky-950/30 px-2 py-2 text-left transition-colors hover:border-sky-400/30 hover:bg-sky-900/40"
-                    >
-                      {card.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`${card.image}/low.webp`}
-                          alt=""
-                          className="h-12 w-9 shrink-0 rounded object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="h-12 w-9 shrink-0 rounded bg-sky-900/50" />
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-sky-50">
-                          {card.name}
-                        </p>
-                        <p className="font-mono text-[10px] text-sky-100/40">
-                          {card.setCode
-                            ? `${card.setCode} ${card.number ?? ""}`.trim()
-                            : "Sin código Limitless"}
-                        </p>
-                      </div>
-                      {inDeck > 0 ? (
-                        <QtyControls
-                          qty={inDeck}
-                          onDelta={(d) => handleResultDelta(card, d)}
-                        />
-                      ) : (
-                        <span className="shrink-0 text-xs text-sky-400">+1</span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        {/* Contadores + legalidad */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sky-500/15 pt-3 text-sm">
+          <span className="text-sky-100/80">
+            <strong className="font-semibold text-sky-50">
+              {grouped.totals.pokemon}
+            </strong>{" "}
+            Pokémon
+          </span>
+          <span className="text-sky-100/80">
+            <strong className="font-semibold text-sky-50">
+              {grouped.totals.trainer}
+            </strong>{" "}
+            Entrenador
+          </span>
+          <span className="text-sky-100/80">
+            <strong className="font-semibold text-sky-50">
+              {grouped.totals.energy}
+            </strong>{" "}
+            Energía
+          </span>
+          <span className="text-sky-100/80">
+            Total:{" "}
+            <strong
+              className={
+                total === 60 ? "text-emerald-400" : "text-amber-300"
+              }
+            >
+              {total}
+            </strong>
+          </span>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              legality.legal
+                ? "bg-emerald-500/20 text-emerald-300"
+                : "bg-amber-500/20 text-amber-200"
+            }`}
+          >
+            {legality.message}
+          </span>
         </div>
+      </div>
+
+      {/* Lista textual — tap fila para quitar */}
+      {allRows.length > 0 && (
+        <div className="sub-panel rounded-xl p-3">
+          <p className="mb-2 text-xs text-sky-100/45">
+            Lista del mazo — tocá una fila para quitar esa carta
+          </p>
+          <ul className="divide-y divide-sky-900/40 text-sm">
+            {allRows.map((s) => (
+              <li key={s.key}>
+                <button
+                  type="button"
+                  onClick={() => handleRowRemove(s.key)}
+                  className="flex w-full items-baseline gap-3 px-2 py-2 text-left hover:bg-rose-950/20"
+                >
+                  <span className="w-6 font-mono font-bold text-sky-400">
+                    {s.qty}
+                  </span>
+                  <span className="flex-1 text-sky-100">{s.name}</span>
+                  {s.setCode && (
+                    <span className="font-mono text-xs text-sky-100/35">
+                      {s.setCode} {s.number}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Acciones */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          className="py-2 text-sm"
+          disabled={slots.length === 0}
+          onClick={() => void handleCopy()}
+        >
+          {copied ? "¡Copiado!" : "Copiar listado"}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          className="py-2 text-sm"
+          disabled={slots.length === 0}
+          onClick={() => setSlots([])}
+        >
+          Vaciar mazo
+        </Button>
+        <Button
+          type="button"
+          className="ml-auto py-2 text-sm"
+          disabled={!legality.legal}
+          onClick={handleCreateList}
+        >
+          Crear lista
+        </Button>
       </div>
 
       {error && (
@@ -450,13 +510,16 @@ export function DeckBuilder({
       {pasteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="sub-panel w-full max-w-lg rounded-xl p-4">
-            <h3 className="font-semibold text-sky-50">Pegar lista</h3>
+            <h3 className="font-semibold text-sky-50">Importar desde PTCGL</h3>
+            <p className="mt-1 text-xs text-sky-100/45">
+              Pega el export de Pokémon TCG Live o tu lista en 3 bloques.
+            </p>
             <textarea
               value={pasteText}
               onChange={(e) => setPasteText(e.target.value)}
               rows={12}
               className="sub-input mt-3 w-full resize-y font-mono text-sm"
-              placeholder="Pega tu mazo (3 bloques con línea en blanco)…"
+              placeholder="Pokémon…&#10;&#10;Entrenadores…&#10;&#10;Energías…"
             />
             <div className="mt-3 flex gap-2">
               <Button type="button" onClick={handlePasteImport}>
@@ -500,45 +563,6 @@ export function DeckBuilder({
               >
                 Cancelar
               </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {imageOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="sub-panel max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-sky-50">Vista de cartas</h3>
-              <Button
-                type="button"
-                variant="ghost"
-                className="py-1"
-                onClick={() => setImageOpen(false)}
-              >
-                Cerrar
-              </Button>
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-              {slots.flatMap((s) =>
-                Array.from({ length: s.qty }, (_, i) => (
-                  <div key={`${s.key}-${i}`} className="relative">
-                    {s.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={`${s.image}/low.webp`}
-                        alt={s.name}
-                        className="w-full rounded"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex aspect-[2.5/3.5] items-center justify-center rounded bg-sky-900/50 p-1 text-center text-[10px] text-sky-200">
-                        {s.name}
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
             </div>
           </div>
         </div>

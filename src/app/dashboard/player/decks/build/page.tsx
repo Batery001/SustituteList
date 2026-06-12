@@ -16,7 +16,7 @@ export default function BuildDeckPage() {
           Pegar lista
         </Link>
       </div>
-      <DeckBuilder />
+      <DeckBuilder showBackLink />
     </div>
   );
 }
