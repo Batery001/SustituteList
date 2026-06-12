@@ -30,6 +30,7 @@ export function TournamentDeckEditor({
 }: TournamentDeckEditorProps) {
   const [rawText, setRawText] = useState(initialRawText);
   const [mode, setMode] = useState<"paste" | "build">("paste");
+  const [buildKey, setBuildKey] = useState(0);
   const [preview, setPreview] = useState<PokemonDeckParseResult | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [savedDecks, setSavedDecks] = useState<{ _id: string; name: string }[]>(
@@ -106,7 +107,12 @@ export function TournamentDeckEditor({
             Pegar lista
           </button>
         </div>
-        <DeckBuilder onRawTextReady={(text) => switchToPaste(text)} />
+        <DeckBuilder
+          key={buildKey}
+          initialRawText={rawText}
+          onRawTextReady={(text) => switchToPaste(text)}
+          applyListLabel="Usar esta lista"
+        />
         <Button type="button" variant="ghost" className="w-full" onClick={onCancel}>
           Cancelar
         </Button>
@@ -122,13 +128,16 @@ export function TournamentDeckEditor({
       </p>
 
       <div className="flex gap-2 border-b border-sky-500/20 pb-3">
-        <button
-          type="button"
-          onClick={() => setMode("build")}
-          className="rounded-lg px-3 py-1.5 text-sm text-sky-200/60 hover:bg-sky-950/50"
-        >
-          Armar mazo
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBuildKey((k) => k + 1);
+              setMode("build");
+            }}
+            className="rounded-lg px-3 py-1.5 text-sm text-sky-200/60 hover:bg-sky-950/50"
+          >
+            Armar mazo
+          </button>
         <span className="rounded-lg bg-teal-600/20 px-3 py-1.5 text-sm font-medium text-teal-200">
           Pegar lista
         </span>

@@ -139,12 +139,17 @@ function TrashIcon() {
 
 export function DeckBuilder({
   onRawTextReady,
+  initialRawText,
   saveRedirect = routes.player.decks,
   showBackLink = false,
+  applyListLabel = "Crear lista",
 }: {
   onRawTextReady?: (rawText: string) => void;
+  /** Carga un mazo existente al abrir el builder (p. ej. al editar). */
+  initialRawText?: string;
   saveRedirect?: string;
   showBackLink?: boolean;
+  applyListLabel?: string;
 }) {
   const router = useRouter();
   const [format, setFormat] = useState<DeckFormat>("standard");
@@ -194,6 +199,12 @@ export function DeckBuilder({
     const t = setTimeout(() => void runSearch(), 300);
     return () => clearTimeout(t);
   }, [runSearch]);
+
+  useEffect(() => {
+    if (!initialRawText?.trim()) return;
+    const { slots: imported } = importRawTextToSlots(initialRawText);
+    if (imported.length > 0) setSlots(imported);
+  }, [initialRawText]);
 
   function handleAddCard(card: CardSearchResult) {
     if (total >= 60) return;
@@ -492,7 +503,7 @@ export function DeckBuilder({
           disabled={!legality.legal}
           onClick={handleCreateList}
         >
-          Crear lista
+          {applyListLabel}
         </Button>
       </div>
 
