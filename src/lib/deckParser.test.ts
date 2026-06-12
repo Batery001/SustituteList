@@ -18,8 +18,29 @@ function deckWithQtyPerLine(qty: number, lines: number): string {
 describe("deckParser", () => {
   it("detecta energías básicas", () => {
     assert.equal(isBasicEnergy("Basic Fire Energy"), true);
+    assert.equal(isBasicEnergy("Darkness Energy"), true);
+    assert.equal(isBasicEnergy("Fire Energy"), true);
+    assert.equal(isBasicEnergy("Double Turbo Energy"), false);
     assert.equal(isBasicEnergy("Charmander"), false);
     assert.equal(isEnergyCardName("12 Basic Water Energy"), true);
+  });
+
+  it("permite más de 4 copias de energía básica tipo Limitless", () => {
+    const deck = [
+      ...Array.from(
+        { length: 12 },
+        (_, i) => `4 Testmon ${String.fromCharCode(65 + i)} OBF ${i + 1}`
+      ),
+      "11 Darkness Energy HS 121",
+      "1 Ultra Ball MEG 131",
+    ].join("\n");
+    const result = parsePokemonDecklist(deck);
+    assert.equal(result.cardCount, 60);
+    assert.equal(result.isValid, true);
+    assert.ok(
+      !result.errors.some((e) => e.includes("Darkness Energy")),
+      `no debería fallar por Darkness Energy: ${result.errors.join("; ")}`
+    );
   });
 
   it("acepta un mazo válido de 60 cartas", () => {

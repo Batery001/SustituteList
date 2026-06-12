@@ -41,9 +41,28 @@ const ENERGY_LINE_REGEX = /^(\d+)\s+(.+)$/;
 const TRAINER_NAME_HINT =
   /\b(ultra ball|nest ball|level ball|great ball|pok[eé]ball|switch|counter catcher|boss'?s orders|professor'?s research|iono|arven|judge|rare candy|super rod|rescue board|technical machine|tool|stadium|artazon|area zero|temple of sinnoh|bravery charm|exp\. share|pal pad|crushing hammer|energy switch|escape rope|electrical generator|artillery|hand trimmer|secret box|buddy-buddy|mystery food|earthen vessel)\b/i;
 
+const BASIC_ENERGY_TYPES = new Set([
+  "grass",
+  "fire",
+  "water",
+  "lightning",
+  "psychic",
+  "fighting",
+  "darkness",
+  "dark",
+  "metal",
+  "fairy",
+  "dragon",
+  "colorless",
+]);
+
+/** Energía básica sin límite de 4 copias (PTCGL / Limitless). */
 export function isBasicEnergy(name: string): boolean {
   const n = name.trim();
-  return /^Basic(?:\s+\w+)+\s+Energy$/i.test(n);
+  if (/^Basic(?:\s+\w+)+\s+Energy$/i.test(n)) return true;
+  const match = n.match(/^(\w+)\s+Energy$/i);
+  if (match && BASIC_ENERGY_TYPES.has(match[1].toLowerCase())) return true;
+  return false;
 }
 
 export function isEnergyCardName(name: string): boolean {
