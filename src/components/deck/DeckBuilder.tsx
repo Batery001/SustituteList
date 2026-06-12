@@ -17,6 +17,7 @@ import {
   type DeckTypeFilter,
 } from "@/lib/deck-builder";
 import { routes } from "@/lib/routes";
+import { tcgdxImageVariants } from "@/lib/card-lookup/tcgdex-image";
 
 const FORMATS: { id: DeckFormat; label: string }[] = [
   { id: "standard", label: "Standard" },
@@ -49,6 +50,48 @@ function formatCardCode(card: { setCode?: string; number?: string }): string {
   return "";
 }
 
+function CardImage({
+  image,
+  name,
+  className,
+}: {
+  image?: string;
+  name: string;
+  className?: string;
+}) {
+  const variants = useMemo(() => tcgdxImageVariants(image), [image]);
+  const [variantIndex, setVariantIndex] = useState(0);
+
+  useEffect(() => {
+    setVariantIndex(0);
+  }, [image]);
+
+  const src = variants[variantIndex];
+
+  if (!src) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-sky-900/60 p-1 text-center text-[8px] leading-tight text-sky-200 ${className ?? ""}`}
+      >
+        {name}
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={name}
+      className={className}
+      loading="lazy"
+      onError={() => {
+        setVariantIndex((i) => (i + 1 < variants.length ? i + 1 : i));
+      }}
+    />
+  );
+}
+
 function SearchResultCard({
   card,
   onAdd,
@@ -67,19 +110,11 @@ function SearchResultCard({
       title={code ? `${card.name} (${code})` : card.name}
       className="h-[5.5rem] w-[4rem] shrink-0 overflow-hidden rounded-sm border border-sky-500/30 bg-sky-950/40 transition hover:border-teal-400/50 hover:ring-2 hover:ring-teal-400/30 disabled:cursor-not-allowed disabled:opacity-40"
     >
-      {card.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`${card.image}/low.webp`}
-          alt={card.name}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div className="flex h-full items-center justify-center p-1 text-center text-[8px] leading-tight text-sky-200">
-          {card.name}
-        </div>
-      )}
+      <CardImage
+        image={card.image}
+        name={card.name}
+        className="h-full w-full object-cover"
+      />
     </button>
   );
 }

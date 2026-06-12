@@ -1,6 +1,10 @@
 import type { DeckCardCategory } from "@/lib/deckParser";
 import type { CardSearchResult, DeckFormat, DeckTypeFilter } from "@/lib/deck-builder";
 import {
+  enrichCardImage,
+  buildTcgdexImageUrl,
+} from "./tcgdex-image";
+import {
   parseTcgdexCardId,
   tcgdexSetToLimitless,
 } from "./limitless-set-codes";
@@ -66,6 +70,7 @@ function briefToResult(card: TcgdexFull): CardSearchResult {
   const tcgdexSetId = card.set?.id ?? parsed?.tcgdexSetId;
   const number = card.localId ?? parsed?.localId;
   const setCode = tcgdexSetId ? tcgdexSetToLimitless(tcgdexSetId) ?? undefined : undefined;
+  const image = buildTcgdexImageUrl(card);
 
   return {
     id: card.id,
@@ -73,7 +78,7 @@ function briefToResult(card: TcgdexFull): CardSearchResult {
     category: tcgdxCategoryToDeck(card.category),
     setCode,
     number,
-    image: card.image,
+    image,
   };
 }
 
@@ -100,8 +105,33 @@ export async function searchTcgdexCards(options: {
     slice.map((b) => fetchJson<TcgdexFull>(`${TCGDEX_BASE}/cards/${b.id}`))
   );
 
-  return fullCards
-    .filter((c): c is TcgdexFull => c != null && passesFormat(c, format))
+  const filtered = fullCards.filter(
+    (c): c is TcgdexFull => c != null && passesFormat(c, format)
+  );
+
+  const enriched = filtered.map((c) => enrichCardImage(c, filtered));
+
+  const results = enriched
     .map(briefToResult)
-    .slice(0, 24);
+    .sort((a, b) => scoreResult(b) - scoreResult(a));
+
+  return filterRedundantWithoutImage(results).slice(0, 24);
+}
+
+function scoreResult(card: CardSearchResult): number {
+  let score = 0;
+  if (card.image) score += 4;
+  if (card.setCode) score += 2;
+  if (card.number) score += 1;
+  return score;
+}
+
+/** Oculta promos sin imagen si ya hay otra impresión con el mismo nombre. */
+function filterRedundantWithoutImage(cards: CardSearchResult[]): CardSearchResult[] {
+  const namesWithImage = new Set(
+    cards.filter((c) => c.image).map((c) => c.name.trim().toLowerCase())
+  );
+  return cards.filter(
+    (c) => c.image || !namesWithImage.has(c.name.trim().toLowerCase())
+  );
 }
