@@ -9,22 +9,12 @@ interface StoreClockProps {
 }
 
 export function StoreClock({ timeZone, compact = false }: StoreClockProps) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    setNow(new Date());
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-
-  if (!now) {
-    return (
-      <div
-        className={`animate-pulse rounded-xl bg-sky-950/50 ${compact ? "h-14 w-20" : "h-[88px] w-28"}`}
-        aria-hidden
-      />
-    );
-  }
 
   const time = new Intl.DateTimeFormat("es-CL", {
     timeZone,

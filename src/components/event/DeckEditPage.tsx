@@ -52,8 +52,25 @@ export function DeckEditPage({ token }: { token: string }) {
   }, [token]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/submissions/${token}`);
+      if (cancelled) return;
+      if (!res.ok) {
+        setError("Lista no encontrada");
+        setLoading(false);
+        return;
+      }
+      const json = (await res.json()) as DeckData;
+      if (cancelled) return;
+      setData(json);
+      setRawText(json.submission.rawText);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   async function handleSave() {
     setSaving(true);
@@ -132,6 +149,7 @@ export function DeckEditPage({ token }: { token: string }) {
             cardCount={submission.validation.cardCount}
             updatedAt={submission.updatedAt}
             readOnly={!event.canEdit}
+            pdfToken={token}
           />
           {event.canEdit && (
             <Button

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
-import { isEventOpen, OPEN_EVENT_QUERY } from "@/lib/events/event-status";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { getPlayerId } from "@/lib/player-auth";

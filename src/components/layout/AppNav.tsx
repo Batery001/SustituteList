@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { routes } from "@/lib/routes";
 
 type Area = "public" | "player" | "store";
 
@@ -75,17 +76,26 @@ export function AppNav({ area }: { area: Area }) {
           Modo tienda · {session!.store!.name}
         </p>
         <div className="flex flex-wrap gap-1">
-          <NavLink href="/admin" active={pathname === "/admin"}>
+          <NavLink
+            href={routes.store.home}
+            active={pathname.startsWith("/dashboard/store")}
+          >
             Panel
           </NavLink>
-          <NavLink href="/admin/perfil" active={pathname === "/admin/perfil"}>
+          <NavLink
+            href={routes.store.profile}
+            active={pathname === routes.store.profile}
+          >
             Perfil tienda
           </NavLink>
           <NavLink href="/" active={pathname === "/"}>
             Inicio jugadores
           </NavLink>
           {hasPlayer && (
-            <NavLink href="/jugador/cuenta" active={pathname.startsWith("/jugador")}>
+            <NavLink
+              href={routes.player.home}
+              active={pathname.startsWith("/dashboard/player")}
+            >
               Mi cuenta jugador
             </NavLink>
           )}
@@ -108,10 +118,10 @@ export function AppNav({ area }: { area: Area }) {
           <nav className="border-t border-sky-500/15 px-4 py-3">
             <p className="mb-2 text-xs text-sky-100/50">No has iniciado sesión</p>
             <div className="flex flex-wrap gap-1">
-              <NavLink href="/auth/login" active={pathname === "/auth/login"}>
+              <NavLink href={routes.auth.login} active={pathname === routes.auth.login}>
                 Iniciar sesión
               </NavLink>
-              <NavLink href="/auth/register" active={pathname === "/auth/register"}>
+              <NavLink href={routes.auth.register} active={pathname === routes.auth.register}>
                 Crear cuenta
               </NavLink>
               <NavLink href="/" active={pathname === "/"}>
@@ -129,7 +139,7 @@ export function AppNav({ area }: { area: Area }) {
         {dualSession && area === "player" && (
           <p className="mb-2 text-xs text-amber-300/90">
             También estás conectado como tienda.{" "}
-            <Link href="/admin" className="underline">
+            <Link href={routes.store.home} className="underline">
               Ir al panel
             </Link>
           </p>
@@ -144,22 +154,32 @@ export function AppNav({ area }: { area: Area }) {
           <NavLink href="/" active={pathname === "/"}>
             Inicio
           </NavLink>
-          <NavLink href="/jugador/cuenta" active={pathname === "/jugador/cuenta"}>
-            Mi cuenta
+          <NavLink
+            href={routes.player.home}
+            active={pathname === routes.player.home}
+          >
+            Inscripciones
           </NavLink>
           <NavLink
-            href="/jugador/mazos"
+            href={routes.player.decks}
             active={
-              pathname === "/jugador/mazos" || pathname.startsWith("/jugador/mazos/")
+              pathname === routes.player.decks ||
+              pathname.startsWith("/dashboard/player/decks/")
             }
           >
             Mis mazos
           </NavLink>
-          <NavLink href="/jugador/perfil" active={pathname === "/jugador/perfil"}>
+          <NavLink
+            href={routes.player.profile}
+            active={pathname === routes.player.profile}
+          >
             Perfil
           </NavLink>
           {hasStore && (
-            <NavLink href="/admin" active={pathname.startsWith("/admin")}>
+            <NavLink
+              href={routes.store.home}
+              active={pathname.startsWith("/dashboard/store")}
+            >
               Panel tienda
             </NavLink>
           )}
@@ -183,10 +203,16 @@ export function AppNav({ area }: { area: Area }) {
             Modo tienda · {session!.store!.name}
           </p>
           <div className="flex flex-wrap gap-1">
-            <NavLink href="/admin" active={pathname.startsWith("/admin")}>
+            <NavLink
+              href={routes.store.home}
+              active={pathname.startsWith("/dashboard/store")}
+            >
               Panel tienda
             </NavLink>
-            <NavLink href="/admin/perfil" active={pathname === "/admin/perfil"}>
+            <NavLink
+              href={routes.store.profile}
+              active={pathname === routes.store.profile}
+            >
               Perfil tienda
             </NavLink>
             <button
@@ -204,10 +230,10 @@ export function AppNav({ area }: { area: Area }) {
     return (
       <nav className="border-t border-sky-500/15 px-4 py-3">
         <div className="flex flex-wrap gap-1">
-          <NavLink href="/auth/login" active={pathname === "/auth/login"}>
+          <NavLink href={routes.auth.login} active={pathname === routes.auth.login}>
             Iniciar sesión
           </NavLink>
-          <NavLink href="/auth/register" active={pathname === "/auth/register"}>
+          <NavLink href={routes.auth.register} active={pathname === routes.auth.register}>
             Crear cuenta
           </NavLink>
         </div>

@@ -1,8 +1,10 @@
+import { normalizeEventStatus } from "@/lib/events/event-status";
 import type { EventStatus, EventType } from "@/types/models";
 
 export function mapEventStatus(raw: string): EventStatus {
-  if (raw === "Active" || raw === "open") return "Active";
-  if (raw === "Draft") return "Draft";
+  const normalized = normalizeEventStatus(raw);
+  if (normalized === "open") return "Active";
+  if (normalized === "draft") return "Draft";
   return "Finished";
 }
 

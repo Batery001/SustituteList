@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ParseResult } from "@/lib/decklist-parser";
+import type { PokemonDeckParseResult } from "@/lib/deckParser";
+
+type DeckParsePreview = Pick<
+  PokemonDeckParseResult,
+  "cards" | "errors" | "warnings" | "cardCount"
+>;
 
 interface DecklistTextareaProps {
   value: string;
@@ -14,7 +19,7 @@ export function DecklistTextarea({
   onChange,
   disabled,
 }: DecklistTextareaProps) {
-  const [preview, setPreview] = useState<ParseResult | null>(null);
+  const [preview, setPreview] = useState<DeckParsePreview | null>(null);
   const [debouncing, setDebouncing] = useState(false);
 
   const runParse = useCallback(async (text: string) => {
@@ -29,7 +34,7 @@ export function DecklistTextarea({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rawText: text }),
       });
-      const data = (await res.json()) as ParseResult;
+      const data = (await res.json()) as DeckParsePreview;
       setPreview(data);
     } finally {
       setDebouncing(false);

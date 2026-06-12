@@ -10,7 +10,7 @@ type Mode = "login" | "register";
 export function PlayerAuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/jugador/cuenta";
+  const next = searchParams.get("next") ?? "/dashboard/player";
   const isLogin = mode === "login";
 
   const [email, setEmail] = useState("");

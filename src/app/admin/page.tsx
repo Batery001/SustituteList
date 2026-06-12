@@ -1,12 +1,6 @@
 import { redirect } from "next/navigation";
-import { AdminDashboard } from "@/components/AdminDashboard";
-import { getAdminStoreId } from "@/lib/auth";
+import { routes } from "@/lib/routes";
 
-export default async function AdminPage() {
-  const storeId = await getAdminStoreId();
-  if (!storeId) {
-  if (!storeId) redirect("/auth/login?callbackUrl=%2Fadmin");
-  }
-
-  return <AdminDashboard />;
+export default function AdminPage() {
+  redirect(routes.store.home);
 }

@@ -1,5 +1,6 @@
-import { PlayerAccountPage } from "@/components/PlayerAccountPage";
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 export default function PlayerAccountRoute() {
-  return <PlayerAccountPage />;
+  redirect(routes.player.home);
 }

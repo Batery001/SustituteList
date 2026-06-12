@@ -20,7 +20,7 @@ export function PlayerProfileForm() {
       .then((r) => r.json())
       .then((data) => {
         if (!data.player) {
-          router.push("/auth/login?callbackUrl=/jugador/perfil");
+          router.push("/auth/login?callbackUrl=%2Fdashboard%2Fplayer%2Fprofile");
           return;
         }
         setPlayerName(data.player.playerName);

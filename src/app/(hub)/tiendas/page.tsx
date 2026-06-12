@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { connectDB } from "@/lib/db";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -30,7 +31,7 @@ export default async function TiendasPage({
   const stores = await Store.find({ slug: { $exists: true, $ne: "" } })
     .sort({ name: 1 })
     .lean();
-  const openEvents = await Event.find({ status: "open" }).lean();
+  const openEvents = await Event.find(OPEN_EVENT_QUERY).lean();
   const byStore = new Map<string, typeof openEvents>();
   for (const ev of openEvents) {
     const k = ev.storeId.toString();

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -10,7 +11,7 @@ export async function GET() {
     .sort({ name: 1 })
     .lean();
 
-  const openEvents = await Event.find({ status: "open" })
+  const openEvents = await Event.find(OPEN_EVENT_QUERY)
     .sort({ startsAt: 1 })
     .lean();
 

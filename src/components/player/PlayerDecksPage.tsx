@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 interface DeckRow {
   _id: string;
@@ -25,7 +26,9 @@ export function PlayerDecksPage() {
     ]).then(async ([meRes, decksRes]) => {
       const me = await meRes.json();
       if (!meRes.ok || !me.player) {
-        router.push("/auth/login?callbackUrl=/jugador/mazos");
+        router.push(
+          `/auth/login?callbackUrl=${encodeURIComponent(routes.player.decks)}`
+        );
         return;
       }
       setPlayerName(me.player.playerName);
@@ -33,7 +36,9 @@ export function PlayerDecksPage() {
       setDecks(decksData.decks ?? []);
       setLoading(false);
     }).catch(() => {
-      router.push("/auth/login?callbackUrl=/jugador/mazos");
+      router.push(
+        `/auth/login?callbackUrl=${encodeURIComponent(routes.player.decks)}`
+      );
     });
   }, [router]);
 
@@ -46,7 +51,7 @@ export function PlayerDecksPage() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-sky-100/55">Mazos de {playerName}</p>
         <Link
-          href="/jugador/mazos/nuevo"
+          href={routes.player.newDeck}
           className="sub-btn-primary rounded-lg px-4 py-2 text-sm"
         >
           + Nuevo mazo
@@ -57,7 +62,7 @@ export function PlayerDecksPage() {
         <section className="sub-panel rounded-xl p-6 text-center text-sm text-sky-100/55">
           <p>Aún no tienes mazos guardados.</p>
           <Link
-            href="/jugador/mazos/nuevo"
+            href={routes.player.newDeck}
             className="sub-link mt-3 inline-block underline"
           >
             Crear tu primer mazo →
@@ -79,7 +84,7 @@ export function PlayerDecksPage() {
                 </p>
               </div>
               <Link
-                href={`/jugador/mazos/${d._id}`}
+                href={routes.player.deck(d._id)}
                 className="sub-link text-sm underline"
               >
                 Editar

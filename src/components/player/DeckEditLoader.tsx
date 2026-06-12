@@ -15,7 +15,7 @@ export function DeckEditLoader({ deckId }: { deckId: string }) {
       .then((r) => r.json())
       .then((data) => {
         if (!data.deck) {
-          router.push("/jugador/mazos");
+          router.push("/dashboard/player/decks");
           return;
         }
         setDeck({ name: data.deck.name, rawText: data.deck.rawText });

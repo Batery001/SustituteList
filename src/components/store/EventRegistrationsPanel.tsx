@@ -9,6 +9,8 @@ import {
   formatPriceCLP,
   statusBadgeClass,
 } from "@/lib/events/store-event-utils";
+import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
+import { Button } from "@/components/ui/Button";
 import type { StoreEventSummary } from "@/types/store-dashboard";
 
 type RegistrationRow = {
@@ -18,6 +20,7 @@ type RegistrationRow = {
   division: Division;
   paymentStatus: string;
   hasDecklist: boolean;
+  deckEditToken?: string | null;
 };
 
 const DIVISIONS: Division[] = ["master", "senior", "junior"];
@@ -28,6 +31,8 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
   const [tab, setTab] = useState<Division>("master");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [evRes, regRes] = await Promise.all([
@@ -60,11 +65,75 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
   }, [eventId]);
 
   useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
+    let cancelled = false;
+    (async () => {
+      const [evRes, regRes] = await Promise.all([
+        fetch(`/api/events/store/${eventId}`),
+        fetch(`/api/registrations?eventId=${eventId}`),
+      ]);
+      if (cancelled) return;
+
+      const evData = (await evRes.json()) as {
+        event?: StoreEventSummary;
+        error?: string;
+      };
+      const regData = (await regRes.json()) as {
+        registrations?: RegistrationRow[];
+        error?: string;
+      };
+
+      if (!evRes.ok) {
+        setError(evData.error ?? "Torneo no encontrado");
+        setLoading(false);
+        return;
+      }
+
+      if (!regRes.ok) {
+        setError(regData.error ?? "No se pudieron cargar inscripciones");
+        setLoading(false);
+        return;
+      }
+
+      setEvent(evData.event ?? null);
+      setRegistrations(regData.registrations ?? []);
+      setError(null);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+
+  async function copyEventLink() {
+    if (!event) return;
+    const url = `${window.location.origin}/e/${event.slug}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function markPaid(registrationId: string) {
+    setMarkingId(registrationId);
+    try {
+      const res = await fetch(`/api/registrations/${registrationId}/pay`, {
+        method: "POST",
+      });
+      if (res.ok) await load();
+    } finally {
+      setMarkingId(null);
+    }
+  }
 
   const byDivision = (d: Division) =>
     registrations.filter((r) => r.division === d);
+
+  const withDeck = registrations.filter((r) => r.hasDecklist).length;
+  const pendingPay = registrations.filter(
+    (r) => r.paymentStatus !== "paid"
+  ).length;
+  const missingDeck = registrations.filter(
+    (r) => r.paymentStatus === "paid" && !r.hasDecklist
+  ).length;
 
   if (loading) {
     return <p className="py-8 text-center text-sky-100/50">Cargando…</p>;
@@ -103,7 +172,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
               {formatEventDate(event.date)}
             </p>
             <p className="mt-1 text-xs text-sky-100/45">
-              Decklist hasta: {formatEventDate(event.decklistDeadline)}
+              Listas hasta: {formatEventDate(event.decklistDeadline)}
             </p>
           </div>
           <span
@@ -112,16 +181,44 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
             {event.status}
           </span>
         </div>
-        <p className="mt-2 text-sm text-sky-200/80">
-          Inscritos: <strong>{spots}</strong>
-        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="sub-panel rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-sky-50">{spots}</p>
+          <p className="text-xs text-sky-100/45">Inscritos</p>
+        </div>
+        <div className="sub-panel rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-emerald-300">{withDeck}</p>
+          <p className="text-xs text-sky-100/45">Con lista</p>
+        </div>
+        <div className="sub-panel rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-amber-300">{missingDeck}</p>
+          <p className="text-xs text-sky-100/45">Falta lista</p>
+        </div>
+        <div className="sub-panel rounded-xl p-3 text-center">
+          <p className="text-2xl font-bold text-amber-200">{pendingPay}</p>
+          <p className="text-xs text-sky-100/45">Pago pendiente</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" className="text-sm" onClick={copyEventLink}>
+          {copied ? "¡Link copiado!" : "Copiar link para jugadores"}
+        </Button>
         <Link
           href={`/e/${event.slug}`}
-          className="mt-2 inline-block text-xs text-sky-400 underline"
+          target="_blank"
+          className="rounded-lg border border-sky-500/25 px-4 py-2 text-sm text-sky-200"
         >
-          Ver página pública del torneo →
+          Ver como jugador
         </Link>
       </div>
+
+      <p className="text-xs text-sky-100/45">
+        Comparte el link con tus jugadores. Ahí se inscriben, pagan (si aplica) y
+        suben su lista de 60 cartas en un solo lugar.
+      </p>
 
       <div className="flex gap-1 border-b border-sky-500/15 pb-2">
         {DIVISIONS.map((d) => (
@@ -150,26 +247,41 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
             {byDivision(tab).map((r) => (
               <li
                 key={r._id}
-                className="flex flex-wrap items-center justify-between gap-2 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
               >
                 <div>
                   <p className="font-medium text-sky-50">{r.playerName}</p>
                   <p className="text-xs text-sky-100/50">Pop ID {r.popId}</p>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span
-                    className={
-                      r.paymentStatus === "paid"
-                        ? "text-emerald-400"
-                        : "text-amber-400"
-                    }
-                  >
-                    {r.paymentStatus === "paid" ? "Pagado" : "Pago pendiente"}
-                  </span>
-                  {r.hasDecklist ? (
-                    <span className="text-emerald-300">✅ Lista recibida</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {r.paymentStatus === "paid" ? (
+                    <span className="text-emerald-400">Pagado</span>
                   ) : (
-                    <span className="text-amber-300">⚠️ Sin lista</span>
+                    <>
+                      <span className="text-amber-400">Pago pendiente</span>
+                      <button
+                        type="button"
+                        disabled={markingId === r._id}
+                        onClick={() => markPaid(r._id)}
+                        className="rounded-md bg-emerald-500/15 px-2 py-1 text-emerald-300 hover:bg-emerald-500/25"
+                      >
+                        {markingId === r._id ? "…" : "Marcar pagado"}
+                      </button>
+                    </>
+                  )}
+                  {r.hasDecklist ? (
+                    <>
+                      <span className="text-emerald-300">Lista ✓</span>
+                      {r.deckEditToken && (
+                        <DownloadDeckPdfButton
+                          token={r.deckEditToken}
+                          label="PDF"
+                          className="px-2 py-1 text-xs"
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-amber-300">Sin lista</span>
                   )}
                 </div>
               </li>
@@ -186,7 +298,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
         }}
         className="text-sm text-sky-400 underline"
       >
-        Actualizar inscritos
+        Actualizar
       </button>
     </div>
   );

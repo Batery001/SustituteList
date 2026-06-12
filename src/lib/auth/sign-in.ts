@@ -45,7 +45,7 @@ export async function signInWithEmailPassword(
       const response = NextResponse.json({
         ok: true,
         role: "store" as const,
-        redirect: "/admin",
+        redirect: "/dashboard/store",
         store: { name: store.name },
       });
       response.cookies.set(COOKIE_NAME, token, cookieOptions);
@@ -62,7 +62,7 @@ export async function signInWithEmailPassword(
       const response = NextResponse.json({
         ok: true,
         role: "player" as const,
-        redirect: "/jugador/cuenta",
+        redirect: "/dashboard/player",
         player: {
           playerName: player.playerName,
           division: getDivision(player.birthDate),

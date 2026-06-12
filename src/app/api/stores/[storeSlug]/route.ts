@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
 
@@ -15,7 +16,7 @@ export async function GET(
     return NextResponse.json({ error: "Tienda no encontrada" }, { status: 404 });
   }
 
-  const events = await Event.find({ storeId: store._id, status: "open" })
+  const events = await Event.find({ storeId: store._id, ...OPEN_EVENT_QUERY })
     .sort({ startsAt: 1 })
     .lean();
 

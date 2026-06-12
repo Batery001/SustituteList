@@ -1,22 +1,27 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { routes } from "@/lib/routes";
 import { PageShell } from "./PageShell";
 
 const SUBTITLES: Record<string, string> = {
+  [routes.player.home]: "Inscripciones y torneos",
+  [routes.player.decks]: "Biblioteca de mazos",
+  [routes.player.newDeck]: "Nuevo mazo",
+  [routes.player.profile]: "Datos de jugador",
   "/jugador/login": "Iniciar sesión",
   "/jugador/registro": "Crear cuenta",
-  "/jugador/cuenta": "Resumen e inscripciones",
-  "/jugador/mazos": "Biblioteca de mazos",
-  "/jugador/mazos/nuevo": "Nuevo mazo",
-  "/jugador/perfil": "Datos de jugador",
 };
 
 export function PlayerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   let subtitle = SUBTITLES[pathname];
 
-  if (!subtitle && pathname.startsWith("/jugador/mazos/")) {
+  if (
+    !subtitle &&
+    (pathname.startsWith("/dashboard/player/decks/") ||
+      pathname.startsWith("/jugador/mazos/"))
+  ) {
     subtitle = "Editar mazo";
   }
 

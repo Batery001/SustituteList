@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { connectDB } from "@/lib/db";
+import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { formatEventType } from "@/lib/event-utils";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
@@ -19,7 +20,7 @@ export default async function StorePublicPage({
   const store = await Store.findOne({ slug: storeSlug }).lean();
   if (!store) notFound();
 
-  const events = await Event.find({ storeId: store._id, status: "open" })
+  const events = await Event.find({ storeId: store._id, ...OPEN_EVENT_QUERY })
     .sort({ startsAt: 1 })
     .lean();
 

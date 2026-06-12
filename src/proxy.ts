@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import { authConfig } from "@/auth.config";
 
-/** Middleware Edge: solo auth.config (sin MongoDB). */
+/** Proxy Edge: auth NextAuth (sin MongoDB). */
 export default NextAuth(authConfig).auth;
 
 export const config = {

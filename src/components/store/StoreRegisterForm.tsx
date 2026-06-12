@@ -34,7 +34,7 @@ export function StoreRegisterForm() {
       return;
     }
 
-    router.push("/admin/perfil");
+    router.push("/dashboard/store/profile");
     router.refresh();
   }
 

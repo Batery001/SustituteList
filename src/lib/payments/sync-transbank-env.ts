@@ -2,8 +2,6 @@ import {
   isWebpayTestMode,
   TRANSBANK_INTEGRATION_DEFAULTS,
 } from "@/lib/payments/transbank";
-import type { IStore } from "@/models/Store";
-
 /** Copia credenciales de Vercel a la tienda si la BD aún no las tiene. */
 export function applyTransbankEnvToStore(store: {
   transbankCommerceCode?: string | null;

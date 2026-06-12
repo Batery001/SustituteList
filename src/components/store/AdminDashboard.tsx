@@ -8,6 +8,7 @@ import { StoreClock } from "@/components/StoreClock";
 import { Button } from "@/components/ui/Button";
 import { formatDivision, type Division } from "@/lib/division";
 import { formatDeadline } from "@/lib/event-utils";
+import { isEventOpen } from "@/lib/events/event-status";
 
 interface EventItem {
   _id: string;
@@ -169,7 +170,7 @@ export function AdminDashboard() {
             </p>
             <DeadlineCountdown
               deadlineIso={openEvent.decklistDeadlineAt}
-              closed={openEvent.status !== "open"}
+              closed={!isEventOpen(openEvent.status)}
             />
             <p className="mt-2 break-all font-mono text-sm text-sky-300">
               {origin}/e/{openEvent.slug}

@@ -4,18 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { Button } from "@/components/ui/Button";
+import { routes } from "@/lib/routes";
+
 interface DeckEditorFormProps {
   deckId?: string;
   initialName?: string;
   initialRawText?: string;
   cancelHref?: string;
+  loginCallbackUrl?: string;
 }
 
 export function DeckEditorForm({
   deckId,
   initialName = "",
   initialRawText = "",
-  cancelHref = "/jugador/mazos",
+  cancelHref = routes.player.decks,
+  loginCallbackUrl = routes.player.newDeck,
 }: DeckEditorFormProps) {
   const router = useRouter();
   const isNew = !deckId;
@@ -42,14 +46,16 @@ export function DeckEditorForm({
 
       if (!res.ok) {
         if (res.status === 401) {
-          router.push("/auth/login?callbackUrl=/jugador/mazos/nuevo");
+          router.push(
+            `/auth/login?callbackUrl=${encodeURIComponent(loginCallbackUrl)}`
+          );
           return;
         }
         setError(data.error ?? "No se pudo guardar");
         return;
       }
 
-      router.push("/jugador/mazos");
+      router.push(cancelHref);
       router.refresh();
     } catch {
       setError("Error de red");
@@ -62,7 +68,7 @@ export function DeckEditorForm({
     if (!deckId || !confirm("¿Eliminar este mazo?")) return;
     setLoading(true);
     await fetch(`/api/player/decks/${deckId}`, { method: "DELETE" });
-    router.push("/jugador/mazos");
+    router.push(cancelHref);
     router.refresh();
   }
 

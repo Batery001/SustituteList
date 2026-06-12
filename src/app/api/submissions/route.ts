@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
-import { parseDecklist } from "@/lib/decklist-parser";
+import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
 import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
@@ -60,14 +60,7 @@ export async function POST(request: Request) {
       registrationAccessToken?: string;
     };
 
-    const {
-      eventSlug,
-      playerName,
-      popId,
-      birthDate,
-      rawText,
-      registrationAccessToken,
-    } = body;
+    const { eventSlug, popId, rawText, registrationAccessToken } = body;
 
     if (!eventSlug || !rawText?.trim()) {
       return NextResponse.json(
@@ -153,8 +146,8 @@ export async function POST(request: Request) {
     const birth = registration.birthDate;
     const resolvedName = registration.playerName;
 
-    const parsed = parseDecklist(rawText);
-    if (parsed.errors.length > 0) {
+    const parsed = parsePokemonDecklist(rawText);
+    if (!parsed.isValid) {
       return NextResponse.json(
         {
           error: msg.api.validationFailed,
@@ -179,7 +172,7 @@ export async function POST(request: Request) {
       birthDate: birth,
       division,
       rawText: rawText.trim(),
-      parsedCards: parsed.cards,
+      parsedCards: toStoredParsedCards(parsed.cards),
       validation: {
         cardCount: parsed.cardCount,
         errorMessages: parsed.errors,

@@ -1,4 +1,5 @@
 import { dbConnect } from "@/lib/dbConnect";
+import { EVENT_STATUS, OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import {
   getStoreTimezone,
   parseDateTimeLocalInTimeZone,
@@ -76,8 +77,8 @@ export async function createStoreEvent(
   }
 
   await Event.updateMany(
-    { storeId, status: { $in: ["open", "Active"] } },
-    { $set: { status: "closed" } }
+    { storeId, ...OPEN_EVENT_QUERY },
+    { $set: { status: EVENT_STATUS.closed } }
   );
 
   let slug = slugify(title.trim());
@@ -98,7 +99,7 @@ export async function createStoreEvent(
     slug,
     startsAt: starts,
     decklistDeadlineAt: deadline,
-    status: "open",
+    status: EVENT_STATUS.open,
     entryFeeCents: fee,
     price: fee,
     maxPlayers:

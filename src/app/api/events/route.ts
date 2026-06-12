@@ -7,6 +7,11 @@ import {
   slugify,
 } from "@/lib/event-utils";
 import { syncStoreTimezone } from "@/lib/sync-store-timezone";
+import {
+  EVENT_STATUS,
+  isEventOpen,
+  OPEN_EVENT_QUERY,
+} from "@/lib/events/event-status";
 import { msg } from "@/lib/messages";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
@@ -32,7 +37,7 @@ async function getAdminEventsResponse() {
     .limit(20)
     .lean();
 
-  const openEvent = events.find((e) => e.status === "open") ?? null;
+  const openEvent = events.find((e) => isEventOpen(e.status)) ?? null;
   const store = await Store.findById(storeId).lean();
   const storeTimezone = getStoreTimezone(store?.timezone);
   if (store && store.timezone !== storeTimezone) {
@@ -133,8 +138,8 @@ export async function POST(request: Request) {
     }
 
     await Event.updateMany(
-      { storeId, status: { $in: ["open", "Active"] } },
-      { $set: { status: "closed" } }
+      { storeId, ...OPEN_EVENT_QUERY },
+      { $set: { status: EVENT_STATUS.closed } }
     );
 
     let slug = customSlug ? slugify(customSlug) : slugify(name);
@@ -155,7 +160,7 @@ export async function POST(request: Request) {
       slug,
       startsAt: starts,
       decklistDeadlineAt: deadline,
-      status: "open",
+      status: EVENT_STATUS.open,
       entryFeeCents: fee,
       maxPlayers:
         typeof maxPlayers === "number" ? Math.max(0, maxPlayers) : null,

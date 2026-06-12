@@ -75,7 +75,7 @@ function LoginFormInner() {
       </Button>
       <p className="text-center text-sm text-sky-100/45">
         ¿Eres jugador y no tienes cuenta?{" "}
-        <Link href="/jugador/registro" className="sub-link underline">
+        <Link href="/auth/register" className="sub-link underline">
           Regístrate
         </Link>
       </p>

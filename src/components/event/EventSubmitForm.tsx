@@ -204,7 +204,7 @@ export function EventSubmitForm({
             ))}
           </select>
           <Link
-            href="/jugador/mazos"
+            href="/dashboard/player/decks"
             className="mt-1 inline-block text-xs text-sky-400 underline"
           >
             Gestionar mis mazos

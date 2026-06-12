@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseDecklist } from "@/lib/decklist-parser";
+import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { msg } from "@/lib/messages";
 import { getPlayerId } from "@/lib/player-auth";
@@ -49,12 +49,12 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    const parsed = parseDecklist(rawText);
+    const parsed = parsePokemonDecklist(rawText);
     const deck = await PlayerDeck.create({
       playerId,
       name: name.trim(),
       rawText: rawText.trim(),
-      parsedCards: parsed.cards,
+      parsedCards: toStoredParsedCards(parsed.cards),
       validation: {
         cardCount: parsed.cardCount,
         errorMessages: parsed.errors,

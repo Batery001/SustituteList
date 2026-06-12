@@ -17,7 +17,6 @@ export async function GET() {
     STORE_TIMEZONE: Boolean(process.env.STORE_TIMEZONE),
     storeTimezone,
     serverNowInStoreTz: formatNowInTimeZone(storeTimezone),
-    adminEmailHint: process.env.ADMIN_EMAIL?.toLowerCase().trim() ?? null,
     transbank: transbankEnvStatus(),
     NEXT_PUBLIC_APP_URL: Boolean(process.env.NEXT_PUBLIC_APP_URL),
     database: "unknown" as "ok" | "error" | "unknown",

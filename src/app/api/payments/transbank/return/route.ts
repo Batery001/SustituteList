@@ -31,9 +31,7 @@ export async function GET(request: Request) {
   const event = await Event.findById(registration.eventId);
   const store = event ? await Store.findById(event.storeId) : null;
   const creds = getTransbankCredentials(store);
-  const returnBase = event
-    ? `/e/${event.slug}/mi-inscripcion/${accessToken}`
-    : `/`;
+  const returnBase = event ? `/e/${event.slug}` : `/`;
 
   if (tbkToken || !tokenWs) {
     return NextResponse.redirect(

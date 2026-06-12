@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseDecklist } from "@/lib/decklist-parser";
+import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
@@ -13,43 +13,48 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const { token } = await params;
-  await connectDB();
+  try {
+    const { token } = await params;
+    await connectDB();
 
-  const submission = await DecklistSubmission.findOne({ editToken: token }).lean();
-  if (!submission) {
-    return NextResponse.json({ error: msg.api.decklistNotFound }, { status: 404 });
+    const submission = await DecklistSubmission.findOne({ editToken: token }).lean();
+    if (!submission) {
+      return NextResponse.json({ error: msg.api.decklistNotFound }, { status: 404 });
+    }
+
+    const event = await Event.findById(submission.eventId).lean();
+    if (!event) {
+      return NextResponse.json({ error: msg.api.eventNotFound }, { status: 404 });
+    }
+
+    const store = await Store.findById(event.storeId).lean();
+    const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
+
+    return NextResponse.json({
+      submission: {
+        playerName: submission.playerName,
+        popId: submission.popId,
+        division: submission.division,
+        rawText: submission.rawText,
+        parsedCards: submission.parsedCards,
+        validation: serializeValidation(submission.validation),
+        updatedAt: submission.updatedAt,
+      },
+      event: {
+        name: event.name,
+        slug: event.slug,
+        decklistDeadlineAt: event.decklistDeadlineAt,
+        deadlinePassed,
+        canEdit: isEventOpen(event.status) && !deadlinePassed,
+      },
+      store: store
+        ? { name: store.name, timezone: store.timezone }
+        : { timezone: "UTC" },
+    });
+  } catch (err) {
+    console.error("Get submission error:", err);
+    return NextResponse.json({ error: msg.api.serverError }, { status: 500 });
   }
-
-  const event = await Event.findById(submission.eventId).lean();
-  if (!event) {
-    return NextResponse.json({ error: msg.api.eventNotFound }, { status: 404 });
-  }
-
-  const store = await Store.findById(event.storeId).lean();
-  const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
-
-  return NextResponse.json({
-    submission: {
-      playerName: submission.playerName,
-      popId: submission.popId,
-      division: submission.division,
-      rawText: submission.rawText,
-      parsedCards: submission.parsedCards,
-      validation: serializeValidation(submission.validation),
-      updatedAt: submission.updatedAt,
-    },
-    event: {
-      name: event.name,
-      slug: event.slug,
-      decklistDeadlineAt: event.decklistDeadlineAt,
-      deadlinePassed,
-      canEdit: isEventOpen(event.status) && !deadlinePassed,
-    },
-    store: store
-      ? { name: store.name, timezone: store.timezone }
-      : { timezone: "UTC" },
-  });
 }
 
 export async function PUT(
@@ -84,8 +89,8 @@ export async function PUT(
       return NextResponse.json({ error: msg.api.deadlinePassed }, { status: 403 });
     }
 
-    const parsed = parseDecklist(rawText);
-    if (parsed.errors.length > 0) {
+    const parsed = parsePokemonDecklist(rawText);
+    if (!parsed.isValid) {
       return NextResponse.json(
         {
           error: msg.api.validationFailed,
@@ -101,7 +106,7 @@ export async function PUT(
 
     submission.set({
       rawText: rawText.trim(),
-      parsedCards: parsed.cards,
+      parsedCards: toStoredParsedCards(parsed.cards),
       validation: {
         cardCount: parsed.cardCount,
         errorMessages: parsed.errors,

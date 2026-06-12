@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
+import { Suspense } from "react";
 import { EventRegistrationFlow } from "@/components/EventRegistrationFlow";
 import { EventTimePanel } from "@/components/EventTimePanel";
 import { connectDB } from "@/lib/db";
@@ -59,16 +60,24 @@ export default async function EventPage({
           timeZone={timezone}
           canSubmit={canSubmit}
         />
-        <EventRegistrationFlow
-          eventSlug={slug}
-          canSubmit={canSubmit}
-          deadlineLabel={deadlineLabel}
-          entryFeeCents={event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0}
-          storeName={store?.name ?? "Tienda"}
-          storeAddress={store?.address}
-          storeCity={store?.city}
-          storePhone={store?.phone}
-        />
+        <Suspense
+          fallback={
+            <p className="py-8 text-center text-sky-100/50">Cargando…</p>
+          }
+        >
+          <EventRegistrationFlow
+            eventSlug={slug}
+            canSubmit={canSubmit}
+            deadlineLabel={deadlineLabel}
+            entryFeeCents={
+              event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0
+            }
+            storeName={store?.name ?? "Tienda"}
+            storeAddress={store?.address}
+            storeCity={store?.city}
+            storePhone={store?.phone}
+          />
+        </Suspense>
       </main>
     </div>
   );

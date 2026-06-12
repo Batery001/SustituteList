@@ -1,5 +1,6 @@
-import { PlayerDecksPage } from "@/components/PlayerDecksPage";
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 export default function MazosPage() {
-  return <PlayerDecksPage />;
+  redirect(routes.player.decks);
 }

@@ -1,5 +1,6 @@
-import { DeckEditorForm } from "@/components/DeckEditorForm";
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 export default function NuevoMazoPage() {
-  return <DeckEditorForm />;
+  redirect(routes.player.newDeck);
 }

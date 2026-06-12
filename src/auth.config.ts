@@ -7,7 +7,7 @@ function getAuthSecret(): string | undefined {
   );
 }
 
-/** Config compatible con Edge (middleware). Sin MongoDB ni bcrypt. */
+/** Config compatible con Edge (proxy). Sin MongoDB ni bcrypt. */
 export const authConfig = {
   secret: getAuthSecret(),
   trustHost: true,

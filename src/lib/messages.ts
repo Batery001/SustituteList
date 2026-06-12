@@ -58,6 +58,9 @@ export const msg = {
     deckNameAndListRequired: "Nombre del mazo y lista son obligatorios",
     deckNotFound: "Mazo no encontrado",
     deckSaveFailed: "No se pudo guardar el mazo",
+    parseFailed: "No se pudo procesar la lista de cartas",
+    serverError: "Error interno del servidor",
+    rateLimited: "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
   },
   parser: {
     invalidQty: (line: string) => `Cantidad no válida en la línea: ${line}`,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseDecklist } from "@/lib/decklist-parser";
+import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { msg } from "@/lib/messages";
 import { getPlayerId } from "@/lib/player-auth";
@@ -60,10 +60,10 @@ export async function PUT(
     if (name?.trim()) deck.name = name.trim();
 
     if (rawText?.trim()) {
-      const parsed = parseDecklist(rawText);
+      const parsed = parsePokemonDecklist(rawText);
       deck.set({
         rawText: rawText.trim(),
-        parsedCards: parsed.cards,
+        parsedCards: toStoredParsedCards(parsed.cards),
         validation: {
           cardCount: parsed.cardCount,
           errorMessages: parsed.errors,

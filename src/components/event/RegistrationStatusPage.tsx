@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EventSubmitForm } from "@/components/EventSubmitForm";
 import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
 import { formatDivision, type Division } from "@/lib/division";
+import { isEventOpen } from "@/lib/events/event-status";
 
 export function RegistrationStatusPage({
   eventSlug,
@@ -32,7 +34,21 @@ export function RegistrationStatusPage({
     onlinePaymentsAvailable: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const paymentNotice = useMemo(() => {
+    const q = searchParams.get("payment");
+    if (q === "success") {
+      return "Pago recibido. Si no ves el cambio, pulsa Actualizar.";
+    }
+    if (q === "pending") return "Pago pendiente de confirmación.";
+    if (q === "failure") {
+      return "El pago no se completó. Puedes intentar de nuevo.";
+    }
+    if (q === "error") {
+      return "Hubo un error al confirmar el pago. Contacta a la tienda.";
+    }
+    return null;
+  }, [searchParams]);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/registrations/${accessToken}`);
@@ -42,19 +58,27 @@ export function RegistrationStatusPage({
   }, [accessToken]);
 
   useEffect(() => {
-    load();
-    const t = setInterval(load, 10000);
-    return () => clearInterval(t);
-  }, [load]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const q = new URLSearchParams(window.location.search).get("payment");
-    if (q === "success") setPaymentNotice("Pago recibido. Si no ves el cambio, pulsa Actualizar.");
-    if (q === "pending") setPaymentNotice("Pago pendiente de confirmación.");
-    if (q === "failure") setPaymentNotice("El pago no se completó. Puedes intentar de nuevo.");
-    if (q === "error") setPaymentNotice("Hubo un error al confirmar el pago. Contacta a la tienda.");
-  }, []);
+    let cancelled = false;
+    const fetchData = async () => {
+      const res = await fetch(`/api/registrations/${accessToken}`);
+      const json = await res.json();
+      if (cancelled) return;
+      if (res.ok) setData(json);
+      setLoading(false);
+    };
+    void fetchData();
+    const t = setInterval(() => {
+      void (async () => {
+        const res = await fetch(`/api/registrations/${accessToken}`);
+        const json = await res.json();
+        if (!cancelled && res.ok) setData(json);
+      })();
+    }, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [accessToken]);
 
   if (loading) {
     return <p className="py-8 text-center text-sky-100/50">Cargando…</p>;
@@ -68,8 +92,7 @@ export function RegistrationStatusPage({
 
   const { registration, event, store, deckEditToken } = data;
   const paid = registration.paymentStatus === "paid";
-  const canSubmit =
-    event.status === "open" && !deckEditToken;
+  const canSubmit = isEventOpen(event.status) && !deckEditToken;
 
   return (
     <div className="space-y-6">

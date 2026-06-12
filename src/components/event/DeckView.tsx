@@ -1,7 +1,8 @@
 "use client";
 
 import { formatDivision, type Division } from "@/lib/division";
-import { groupCardsByName } from "@/lib/decklist-parser";
+import { groupParsedCardsByName } from "@/lib/deckParser";
+import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
 
 interface Card {
   qty: number;
@@ -18,6 +19,7 @@ interface DeckViewProps {
   cardCount: number;
   updatedAt?: string;
   readOnly?: boolean;
+  pdfToken?: string | null;
 }
 
 export function DeckView({
@@ -28,9 +30,10 @@ export function DeckView({
   cardCount,
   updatedAt,
   readOnly,
+  pdfToken,
 }: DeckViewProps) {
-  const grouped = groupCardsByName(
-    cards.map((c) => ({ ...c, lineRaw: "" }))
+  const grouped = groupParsedCardsByName(
+    cards.map((c) => ({ ...c, category: "pokemon" as const, lineRaw: "" }))
   );
 
   return (
@@ -62,6 +65,11 @@ export function DeckView({
             Última actualización:{" "}
             {new Date(updatedAt).toLocaleString("es")}
           </p>
+        )}
+        {pdfToken && (
+          <div className="mt-3">
+            <DownloadDeckPdfButton token={pdfToken} className="w-full sm:w-auto" />
+          </div>
         )}
       </div>
 

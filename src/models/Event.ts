@@ -19,7 +19,15 @@ const EventSchema = new Schema(
     decklistDeadlineAt: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["open", "closed", "archived", "Draft", "Active", "Finished"],
+      enum: [
+        "draft",
+        "open",
+        "closed",
+        "archived",
+        "Draft",
+        "Active",
+        "Finished",
+      ],
       default: "open",
       index: true,
     },

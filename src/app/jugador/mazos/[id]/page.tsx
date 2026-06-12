@@ -1,4 +1,5 @@
-import { DeckEditLoader } from "@/components/DeckEditLoader";
+import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 export default async function EditarMazoPage({
   params,
@@ -6,5 +7,5 @@ export default async function EditarMazoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <DeckEditLoader deckId={id} />;
+  redirect(routes.player.deck(id));
 }

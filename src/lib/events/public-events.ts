@@ -1,13 +1,17 @@
 import { headers } from "next/headers";
 import type { PublicEventDTO, EventStatus, EventType } from "@/types/models";
 import { dbConnect } from "@/lib/dbConnect";
-import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
+import {
+  normalizeEventStatus,
+  OPEN_EVENT_QUERY,
+} from "@/lib/events/event-status";
 import { Event } from "@/models/Event";
 import type { IStore } from "@/models/Store";
 
 function mapEventStatus(raw: string): EventStatus {
-  if (raw === "Active" || raw === "open") return "Active";
-  if (raw === "Draft") return "Draft";
+  const normalized = normalizeEventStatus(raw);
+  if (normalized === "open") return "Active";
+  if (normalized === "draft") return "Draft";
   return "Finished";
 }
 
