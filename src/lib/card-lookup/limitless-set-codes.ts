@@ -55,3 +55,20 @@ export function limitlessSetToTcgdex(setCode: string): string | null {
   const key = setCode.trim().toUpperCase();
   return LIMITLESS_TO_TCGDEX_SET[key] ?? null;
 }
+
+const TCGDEX_TO_LIMITLESS: Record<string, string> = Object.fromEntries(
+  Object.entries(LIMITLESS_TO_TCGDEX_SET).map(([ll, tcx]) => [tcx, ll])
+);
+
+/** Código Limitless/PTCGL a partir del id de set TCGdex (`sv06`, `me02.5`, …). */
+export function tcgdexSetToLimitless(tcgdexSetId: string): string | null {
+  return TCGDEX_TO_LIMITLESS[tcgdexSetId] ?? null;
+}
+
+export function parseTcgdexCardId(
+  id: string
+): { tcgdexSetId: string; localId: string } | null {
+  const match = id.match(/^(.+)-([^-]+)$/);
+  if (!match) return null;
+  return { tcgdexSetId: match[1], localId: match[2] };
+}

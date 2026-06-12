@@ -10,6 +10,7 @@ export const routes = {
     home: "/dashboard/player",
     decks: "/dashboard/player/decks",
     newDeck: "/dashboard/player/decks/new",
+    buildDeck: "/dashboard/player/decks/build",
     deck: (id: string) => `/dashboard/player/decks/${id}`,
     profile: "/dashboard/player/profile",
     uploadDeck: (registrationId: string) =>

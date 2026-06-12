@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { DeckBuilder } from "@/components/deck/DeckBuilder";
 import { DeckCategoryPreviewPanel } from "@/components/player/DeckCategoryPreviewPanel";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { Button } from "@/components/ui/Button";
@@ -34,6 +35,7 @@ export function EventDeckStep({
   const [savedDecks, setSavedDecks] = useState<
     { _id: string; name: string }[]
   >([]);
+  const [mode, setMode] = useState<"paste" | "build">("paste");
 
   useEffect(() => {
     fetch("/api/player/decks")
@@ -117,6 +119,44 @@ export function EventDeckStep({
     }
   }
 
+  if (mode === "build") {
+    return (
+      <div className="space-y-4">
+        <div className="sub-panel rounded-xl p-4 text-sm">
+          <p className="font-medium text-sky-50">{playerName}</p>
+          <p className="text-sky-100/55">Pop ID {popId}</p>
+        </div>
+        <div className="flex gap-2 border-b border-sky-500/20 pb-3">
+          <button
+            type="button"
+            onClick={() => setMode("build")}
+            className="rounded-lg bg-teal-600/20 px-3 py-1.5 text-sm font-medium text-teal-200"
+          >
+            Armar mazo
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("paste")}
+            className="rounded-lg px-3 py-1.5 text-sm text-sky-200/60 hover:bg-sky-950/50"
+          >
+            Pegar lista
+          </button>
+        </div>
+        <DeckBuilder
+          onRawTextReady={(text) => {
+            setRawText(text);
+            setMode("paste");
+            setPreview(null);
+            setError(null);
+          }}
+        />
+        <p className="text-center text-xs text-sky-100/40">
+          Hora límite: {deadlineLabel}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="sub-panel rounded-xl p-4 text-sm">
@@ -127,6 +167,19 @@ export function EventDeckStep({
           <span className="font-mono">4 Toxel PFL 67</span>), Entrenadores (set
           opcional) y Energías. Total: 60 cartas.
         </p>
+      </div>
+
+      <div className="flex gap-2 border-b border-sky-500/20 pb-3">
+        <button
+          type="button"
+          onClick={() => setMode("build")}
+          className="rounded-lg px-3 py-1.5 text-sm text-sky-200/60 hover:bg-sky-950/50"
+        >
+          Armar mazo
+        </button>
+        <span className="rounded-lg bg-teal-600/20 px-3 py-1.5 text-sm font-medium text-teal-200">
+          Pegar lista
+        </span>
       </div>
 
       {savedDecks.length > 0 && (

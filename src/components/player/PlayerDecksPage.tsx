@@ -50,12 +50,20 @@ export function PlayerDecksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-sky-100/55">Mazos de {playerName}</p>
-        <Link
-          href={routes.player.newDeck}
-          className="sub-btn-primary rounded-lg px-4 py-2 text-sm"
-        >
-          + Nuevo mazo
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href={routes.player.buildDeck}
+            className="sub-btn-primary rounded-lg px-4 py-2 text-sm"
+          >
+            Armar mazo
+          </Link>
+          <Link
+            href={routes.player.newDeck}
+            className="rounded-lg border border-sky-500/30 px-4 py-2 text-sm text-sky-200 hover:bg-sky-950/50"
+          >
+            Pegar lista
+          </Link>
+        </div>
       </div>
 
       {decks.length === 0 ? (

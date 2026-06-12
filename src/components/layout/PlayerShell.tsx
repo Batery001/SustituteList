@@ -8,6 +8,7 @@ const SUBTITLES: Record<string, string> = {
   [routes.player.home]: "Inscripciones y torneos",
   [routes.player.decks]: "Biblioteca de mazos",
   [routes.player.newDeck]: "Nuevo mazo",
+  [routes.player.buildDeck]: "Armar mazo",
   [routes.player.profile]: "Datos de jugador",
   "/jugador/login": "Iniciar sesión",
   "/jugador/registro": "Crear cuenta",
