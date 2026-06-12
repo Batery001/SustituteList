@@ -1,25 +1,83 @@
 "use client";
 
 import { formatDivision, type Division } from "@/lib/division";
-import { groupParsedCardsByName } from "@/lib/deckParser";
+import {
+  groupParsedCardsByName,
+  resolveDeckCategories,
+  type DeckCardCategory,
+  type StoredDeckCard,
+} from "@/lib/deckParser";
 import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
-
-interface Card {
-  qty: number;
-  name: string;
-  setCode?: string;
-  number?: string;
-}
 
 interface DeckViewProps {
   playerName: string;
   popId: string;
   division: Division;
-  cards: Card[];
+  cards: StoredDeckCard[];
   cardCount: number;
+  rawText?: string;
   updatedAt?: string;
   readOnly?: boolean;
   pdfToken?: string | null;
+}
+
+const SECTIONS: {
+  key: DeckCardCategory;
+  title: string;
+  accent: string;
+}[] = [
+  { key: "pokemon", title: "Pokémon", accent: "text-rose-300" },
+  { key: "trainer", title: "Entrenadores", accent: "text-amber-300" },
+  { key: "energy", title: "Energías", accent: "text-cyan-300" },
+];
+
+function SectionList({
+  title,
+  cards,
+  total,
+  accent,
+}: {
+  title: string;
+  cards: StoredDeckCard[];
+  total: number;
+  accent: string;
+}) {
+  const grouped = groupParsedCardsByName(
+    cards.map((c) => ({
+      ...c,
+      category: c.category ?? "pokemon",
+      lineRaw: "",
+    }))
+  );
+
+  if (grouped.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-sky-500/20 bg-[#060d18]/80">
+      <div className="flex items-center justify-between border-b border-sky-900/40 px-4 py-2.5">
+        <h3 className={`text-sm font-semibold ${accent}`}>{title}</h3>
+        <span className="font-mono text-xs text-sky-200/70">{total}</span>
+      </div>
+      <ul className="divide-y divide-sky-900/40">
+        {grouped.map((card, i) => (
+          <li
+            key={i}
+            className="flex items-baseline gap-3 px-4 py-2.5 text-sm"
+          >
+            <span className="w-8 shrink-0 font-mono font-bold text-sky-400">
+              {card.qty}
+            </span>
+            <span className="flex-1 text-zinc-100">{card.name}</span>
+            {card.setCode && (
+              <span className="shrink-0 font-mono text-xs text-zinc-500">
+                {card.setCode} {card.number}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export function DeckView({
@@ -28,13 +86,12 @@ export function DeckView({
   division,
   cards,
   cardCount,
+  rawText,
   updatedAt,
   readOnly,
   pdfToken,
 }: DeckViewProps) {
-  const grouped = groupParsedCardsByName(
-    cards.map((c) => ({ ...c, category: "pokemon" as const, lineRaw: "" }))
-  );
+  const categories = resolveDeckCategories(cards, rawText);
 
   return (
     <div className="space-y-4">
@@ -73,24 +130,17 @@ export function DeckView({
         )}
       </div>
 
-      <ul className="divide-y divide-sky-900/40 rounded-xl border border-sky-500/20 bg-[#060d18]/80">
-        {grouped.map((card, i) => (
-          <li
-            key={i}
-            className="flex items-baseline gap-3 px-4 py-2.5 text-sm"
-          >
-            <span className="w-8 shrink-0 font-mono font-bold text-sky-400">
-              {card.qty}
-            </span>
-            <span className="flex-1 text-zinc-100">{card.name}</span>
-            {card.setCode && (
-              <span className="shrink-0 font-mono text-xs text-zinc-500">
-                {card.setCode} {card.number}
-              </span>
-            )}
-          </li>
+      <div className="space-y-3">
+        {SECTIONS.map(({ key, title, accent }) => (
+          <SectionList
+            key={key}
+            title={title}
+            cards={categories[key]}
+            total={categories.totals[key]}
+            accent={accent}
+          />
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

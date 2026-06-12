@@ -7,6 +7,10 @@ const ParsedCardSchema = new Schema(
     setCode: String,
     number: String,
     lineRaw: String,
+    category: {
+      type: String,
+      enum: ["pokemon", "trainer", "energy"],
+    },
   },
   { _id: false }
 );

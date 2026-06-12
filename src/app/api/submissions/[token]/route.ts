@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
+import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
+import { toStoredParsedCards, type StoredDeckCard } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
@@ -30,13 +31,30 @@ export async function GET(
     const store = await Store.findById(event.storeId).lean();
     const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
 
+    const hasCategories = (submission.parsedCards ?? []).some(
+      (c) => c.category != null
+    );
+    let parsedCards: StoredDeckCard[] = (submission.parsedCards ?? []).map(
+      (c) => ({
+        qty: c.qty ?? 0,
+        name: c.name ?? "",
+        setCode: c.setCode ?? undefined,
+        number: c.number ?? undefined,
+        category: c.category ?? undefined,
+      })
+    );
+    if (!hasCategories && submission.rawText?.trim()) {
+      const enriched = await parseAndEnrichPokemonDecklist(submission.rawText);
+      parsedCards = toStoredParsedCards(enriched.cards);
+    }
+
     return NextResponse.json({
       submission: {
         playerName: submission.playerName,
         popId: submission.popId,
         division: submission.division,
         rawText: submission.rawText,
-        parsedCards: submission.parsedCards,
+        parsedCards,
         validation: serializeValidation(submission.validation),
         updatedAt: submission.updatedAt,
       },
@@ -89,7 +107,7 @@ export async function PUT(
       return NextResponse.json({ error: msg.api.deadlinePassed }, { status: 403 });
     }
 
-    const parsed = parsePokemonDecklist(rawText);
+    const parsed = await parseAndEnrichPokemonDecklist(rawText);
     if (!parsed.isValid) {
       return NextResponse.json(
         {

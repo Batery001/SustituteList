@@ -5,7 +5,7 @@ import Link from "next/link";
 import { DeckCategoryPreviewPanel } from "@/components/player/DeckCategoryPreviewPanel";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { Button } from "@/components/ui/Button";
-import { parsePokemonDecklist } from "@/lib/deckParser";
+import type { PokemonDeckParseResult } from "@/lib/deckParser";
 import { routes } from "@/lib/routes";
 import { getValidationErrors } from "@/lib/validation-display";
 
@@ -29,9 +29,8 @@ export function EventDeckStep({
   const [rawText, setRawText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<ReturnType<
-    typeof parsePokemonDecklist
-  > | null>(null);
+  const [preview, setPreview] = useState<PokemonDeckParseResult | null>(null);
+  const [previewing, setPreviewing] = useState(false);
   const [savedDecks, setSavedDecks] = useState<
     { _id: string; name: string }[]
   >([]);
@@ -45,13 +44,32 @@ export function EventDeckStep({
       .catch(() => {});
   }, []);
 
-  function handlePreview() {
-    const result = parsePokemonDecklist(rawText);
-    setPreview(result);
-    if (!result.isValid) {
-      setError(result.errors.join(" "));
-    } else {
-      setError(null);
+  async function handlePreview() {
+    setPreviewing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText }),
+      });
+      const data = (await res.json()) as PokemonDeckParseResult & {
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo revisar la lista");
+        setPreview(null);
+        return;
+      }
+      setPreview(data);
+      if (!data.isValid) {
+        setError(data.errors.join(" "));
+      }
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+      setPreview(null);
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -105,8 +123,9 @@ export function EventDeckStep({
         <p className="font-medium text-sky-50">{playerName}</p>
         <p className="text-sky-100/55">Pop ID {popId}</p>
         <p className="mt-2 text-xs text-sky-100/45">
-          Pega tu lista exportada desde TCG Live o Limitless. Debe tener
-          exactamente 60 cartas.
+          Separa en 3 bloques con una línea en blanco: Pokémon (con set, ej.{" "}
+          <span className="font-mono">4 Toxel PFL 67</span>), Entrenadores (set
+          opcional) y Energías. Total: 60 cartas.
         </p>
       </div>
 
@@ -144,10 +163,10 @@ export function EventDeckStep({
         type="button"
         variant="secondary"
         className="w-full"
-        disabled={!rawText.trim() || loading}
-        onClick={handlePreview}
+        disabled={!rawText.trim() || loading || previewing}
+        onClick={() => void handlePreview()}
       >
-        Revisar lista
+        {previewing ? "Clasificando cartas…" : "Revisar lista"}
       </Button>
 
       {preview && preview.isValid && (

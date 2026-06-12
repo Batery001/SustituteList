@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parsePokemonDecklist } from "@/lib/deckParser";
+import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
 import { msg } from "@/lib/messages";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { rawText?: string };
     const rawText = typeof body.rawText === "string" ? body.rawText : "";
-    const result = parsePokemonDecklist(rawText);
+    const result = await parseAndEnrichPokemonDecklist(rawText);
     return NextResponse.json({
       cards: result.cards,
       errors: result.errors,

@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
+import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
+import { toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
 import { isEventOpen } from "@/lib/events/event-status";
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed = parsePokemonDecklist(rawText);
+    const parsed = await parseAndEnrichPokemonDecklist(rawText);
     if (!parsed.isValid) {
       return NextResponse.json(
         {

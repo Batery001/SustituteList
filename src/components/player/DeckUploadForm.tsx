@@ -5,20 +5,17 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeckCategoryPreviewPanel } from "@/components/player/DeckCategoryPreviewPanel";
 import { Button } from "@/components/ui/Button";
-import { parsePokemonDecklist } from "@/lib/deckParser";
+import type { PokemonDeckParseResult } from "@/lib/deckParser";
 import type { PlayerRegistrationRow } from "@/lib/player/get-player-registrations";
 
-const PLACEHOLDER = `Pokémon: 20
-4 Charmander OBF 26
+const PLACEHOLDER = `4 Charmander OBF 26
 2 Charmeleon OBF 27
-...
+1 Charizard ex OBF 125
 
-Trainer: 32
-2 Boss's Orders PAL 172
-4 Ultra Ball SVI 196
-...
+4 Boss's Orders
+4 Ultra Ball
+2 Nest Ball PAL 181
 
-Energy: 8
 12 Basic Fire Energy`;
 
 export function DeckUploadForm({
@@ -28,26 +25,47 @@ export function DeckUploadForm({
 }) {
   const router = useRouter();
   const [rawText, setRawText] = useState("");
-  const [parseResult, setParseResult] = useState<ReturnType<
-    typeof parsePokemonDecklist
-  > | null>(null);
+  const [parseResult, setParseResult] = useState<PokemonDeckParseResult | null>(
+    null
+  );
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  function handleValidate() {
+  async function handleValidate() {
     setError(null);
     setSuccess(false);
-    const result = parsePokemonDecklist(rawText);
-    setParseResult(result);
-    if (!result.isValid) {
-      setError(result.errors.join(" "));
+    setValidating(true);
+    try {
+      const res = await fetch("/api/parse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rawText }),
+      });
+      const data = (await res.json()) as PokemonDeckParseResult & {
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo validar el mazo");
+        setParseResult(null);
+        return;
+      }
+      setParseResult(data);
+      if (!data.isValid) {
+        setError(data.errors.join(" "));
+      }
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+      setParseResult(null);
+    } finally {
+      setValidating(false);
     }
   }
 
   async function handleSubmit() {
     if (!parseResult?.isValid) {
-      handleValidate();
+      await handleValidate();
       return;
     }
 
@@ -136,9 +154,10 @@ export function DeckUploadForm({
           autoCorrect="off"
         />
         <p className="mt-2 text-xs text-sky-100/40">
-          Formato estándar:{" "}
-          <span className="font-mono">4 Nombre SET 123</span> · Energías:{" "}
-          <span className="font-mono">12 Basic Fire Energy</span>
+          Tres bloques separados por línea en blanco: Pokémon con set (
+          <span className="font-mono">4 Toxel PFL 67</span>), Entrenadores sin
+          set opcional (<span className="font-mono">4 Ultra Ball</span>),
+          Energías (<span className="font-mono">11 Darkness Energy</span>).
         </p>
       </label>
 
@@ -168,10 +187,10 @@ export function DeckUploadForm({
           type="button"
           variant="secondary"
           className="flex-1"
-          onClick={handleValidate}
-          disabled={!rawText.trim()}
+          onClick={() => void handleValidate()}
+          disabled={!rawText.trim() || validating}
         >
-          Validar Mazo
+          {validating ? "Clasificando…" : "Validar Mazo"}
         </Button>
         <Button
           type="button"

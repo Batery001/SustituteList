@@ -9,6 +9,16 @@ export interface ParsedDeckCard {
   number?: string;
   lineRaw: string;
   category: DeckCardCategory;
+  /** true si la categoría vino de un encabezado PTCGL (Pokémon:/Trainer:/Energy:). */
+  sectionAssigned?: boolean;
+}
+
+export interface StoredDeckCard {
+  qty: number;
+  name: string;
+  setCode?: string;
+  number?: string;
+  category?: DeckCardCategory;
 }
 
 export interface DeckCategoryPreview {
@@ -35,11 +45,218 @@ const SECTION_ENERGY = /^(?:energy|energ[íi]a)\b/i;
 const CARD_WITH_SET_REGEX =
   /^(\d+)\s+(.+?)\s+([A-Z0-9]{2,4})\s+(\d+[a-zA-Z]?)$/;
 
-/** Energías sin código: `12 Basic Fire Energy` */
-const ENERGY_LINE_REGEX = /^(\d+)\s+(.+)$/;
+/** Solo cantidad + nombre (entrenadores / energías sin set). */
+const QTY_NAME_REGEX = /^(\d+)\s+(.+)$/;
+
+function splitIntoBlocks(text: string): string[][] {
+  const blocks: string[][] = [];
+  let current: string[] = [];
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (current.length > 0) {
+        blocks.push(current);
+        current = [];
+      }
+      continue;
+    }
+    current.push(line);
+  }
+
+  if (current.length > 0) blocks.push(current);
+  return blocks;
+}
+
+function hasExplicitSectionHeaders(text: string): boolean {
+  return /^(?:pokémon|pokemon|trainer|trainers|entrenador(?:es)?|energy|energ[íi]a)\b/im.test(
+    text
+  );
+}
+
+/** Encabezados PTCGL o bloques separados por línea en blanco (Pokémon / Entrenadores / Energías). */
+export function hasStructuredDeckSections(text: string): boolean {
+  if (hasExplicitSectionHeaders(text)) return true;
+  const blocks = splitIntoBlocks(text.replace(/\uFEFF/g, ""));
+  return blocks.length >= 2 && blocks.length <= 3;
+}
+
+interface LineParseOptions {
+  currentSection: DeckCardCategory | null;
+  sectionAssigned: boolean;
+  /** Los Pokémon deben traer `SET 123`. */
+  requireSet: boolean;
+  /** Permite `4 Ultra Ball` sin código de expansión. */
+  allowQtyNameOnly: boolean;
+  /** En bloque mixto (entrenadores + energías), default si no es energía. */
+  defaultNonEnergyCategory?: DeckCardCategory;
+}
+
+function resolveLineCategory(
+  name: string,
+  opts: LineParseOptions
+): DeckCardCategory {
+  if (opts.currentSection) return opts.currentSection;
+  const guessed = categorizeByName(name);
+  if (guessed === "energy") return "energy";
+  if (guessed === "trainer") return "trainer";
+  if (opts.defaultNonEnergyCategory) return opts.defaultNonEnergyCategory;
+  return guessed;
+}
+
+function parseDeckLine(
+  line: string,
+  opts: LineParseOptions,
+  cards: ParsedDeckCard[],
+  errors: string[]
+): void {
+  const setMatch = line.match(CARD_WITH_SET_REGEX);
+  if (setMatch) {
+    const qty = parseInt(setMatch[1], 10);
+    if (qty < 1 || qty > 60) {
+      errors.push(`Cantidad no válida en la línea: ${line}`);
+      return;
+    }
+    const name = setMatch[2].trim();
+    const category = resolveLineCategory(name, opts);
+    if (opts.requireSet && category === "pokemon") {
+      // ok — tiene set
+    } else if (opts.requireSet && category !== "pokemon") {
+      // entrenador con set en bloque pokémon: respetar sección forzada
+    }
+    cards.push({
+      qty,
+      name,
+      setCode: setMatch[3],
+      number: setMatch[4],
+      lineRaw: line,
+      category: opts.currentSection ?? category,
+      sectionAssigned: opts.sectionAssigned,
+    });
+    return;
+  }
+
+  if (opts.allowQtyNameOnly) {
+    const qtyMatch = line.match(QTY_NAME_REGEX);
+    if (qtyMatch) {
+      const qty = parseInt(qtyMatch[1], 10);
+      if (qty < 1 || qty > 60) {
+        errors.push(`Cantidad no válida en la línea: ${line}`);
+        return;
+      }
+      const name = qtyMatch[2].trim();
+      const category = resolveLineCategory(name, opts);
+      cards.push({
+        qty,
+        name,
+        lineRaw: line,
+        category,
+        sectionAssigned: opts.sectionAssigned,
+      });
+      return;
+    }
+  }
+
+  if (opts.requireSet) {
+    errors.push(`Los Pokémon deben incluir set y número (ej. 4 Toxel PFL 67): ${line}`);
+  } else {
+    errors.push(`No se pudo leer la línea: ${line}`);
+  }
+}
+
+function isSectionHeaderLine(line: string): DeckCardCategory | null {
+  if (SECTION_POKEMON.test(line)) return "pokemon";
+  if (SECTION_TRAINER.test(line)) return "trainer";
+  if (SECTION_ENERGY.test(line)) return "energy";
+  return null;
+}
+
+function finalizeParse(
+  cards: ParsedDeckCard[],
+  errors: string[],
+  warnings: string[]
+): PokemonDeckParseResult {
+  const cardCount = cards.reduce((sum, c) => sum + c.qty, 0);
+
+  if (cardCount !== 60) {
+    errors.push(
+      `Tu mazo tiene ${cardCount} cartas, deben ser exactamente 60.`
+    );
+  }
+
+  errors.push(...validateCopyLimit(cards));
+
+  return {
+    cards,
+    errors,
+    warnings,
+    cardCount,
+    categories: mergeCategoryCards(cards),
+    isValid: errors.length === 0,
+  };
+}
+
+function parseBlockedDecklist(
+  blocks: string[][],
+  errors: string[],
+  warnings: string[]
+): PokemonDeckParseResult {
+  const cards: ParsedDeckCard[] = [];
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+
+    let blockSection: DeckCardCategory | null;
+    let requireSet: boolean;
+    let allowQtyNameOnly: boolean;
+    let defaultNonEnergyCategory: DeckCardCategory | undefined;
+
+    if (blocks.length === 3) {
+      blockSection = i === 0 ? "pokemon" : i === 1 ? "trainer" : "energy";
+      requireSet = i === 0;
+      allowQtyNameOnly = i > 0;
+    } else if (blocks.length === 2) {
+      blockSection = i === 0 ? "pokemon" : null;
+      requireSet = i === 0;
+      allowQtyNameOnly = i === 1;
+      defaultNonEnergyCategory = i === 1 ? "trainer" : undefined;
+    } else {
+      blockSection = "pokemon";
+      requireSet = true;
+      allowQtyNameOnly = false;
+    }
+
+    for (const line of block) {
+      if (/^(?:pokémon|pokemon|trainer|trainers|energy|energ[íi]a)\s*:\s*\d+/i.test(line)) {
+        continue;
+      }
+      const header = isSectionHeaderLine(line);
+      if (header) continue;
+
+      parseDeckLine(
+        line,
+        {
+          currentSection: blockSection,
+          sectionAssigned: true,
+          requireSet,
+          allowQtyNameOnly,
+          defaultNonEnergyCategory,
+        },
+        cards,
+        errors
+      );
+    }
+  }
+
+  return finalizeParse(cards, errors, warnings);
+}
 
 const TRAINER_NAME_HINT =
-  /\b(ultra ball|nest ball|level ball|great ball|pok[eé]ball|switch|counter catcher|boss'?s orders|professor'?s research|iono|arven|judge|rare candy|super rod|rescue board|technical machine|tool|stadium|artazon|area zero|temple of sinnoh|bravery charm|exp\. share|pal pad|crushing hammer|energy switch|escape rope|electrical generator|artillery|hand trimmer|secret box|buddy-buddy|mystery food|earthen vessel)\b/i;
+  /\b(ultra ball|nest ball|level ball|great ball|quick ball|pok[eé] ?ball|pok[eé] ?pad|pok[eé]gear|air balloon|punk helmet|night stretcher|energy switch|energy recycler|counter catcher|boss'?s orders|professor'?s research|iono|arven|judge|lillie'?s determination|rare candy|super rod|rescue board|technical machine|bravery charm|exp\. share|pal pad|crushing hammer|escape rope|electrical generator|secret box|buddy-buddy|mystery food|earthen vessel|team rocket'?s (?:petrel|factory|watchtower|transceiver|admin|archer|gambler|great ball|hypnosis|mewtwo|persian|proton|receiver|weezing|wobbuffet)|artazon|area zero|temple of sinnoh|hand trimmer|stadium|tool)\b/i;
+
+/** Cartas con Rule Box que suelen ser Pokémon aunque el nombre no lo indique. */
+const POKEMON_NAME_HINT =
+  /\b(ex|vstar|vmax|\sv\b| gx\b| radiante\b| ◇)\b/i;
 
 const BASIC_ENERGY_TYPES = new Set([
   "grass",
@@ -70,13 +287,14 @@ export function isEnergyCardName(name: string): boolean {
   return isBasicEnergy(n) || /\benergy\b|\benerg[íi]a\b/i.test(n);
 }
 
-function categorizeByName(name: string): DeckCardCategory {
-  if (isEnergyCardName(name)) return "energy";
+export function categorizeByName(name: string): DeckCardCategory {
   if (TRAINER_NAME_HINT.test(name)) return "trainer";
+  if (isEnergyCardName(name)) return "energy";
+  if (POKEMON_NAME_HINT.test(name)) return "pokemon";
   return "pokemon";
 }
 
-function mergeCategoryCards(
+export function mergeCategoryCards(
   cards: ParsedDeckCard[]
 ): DeckCategoryPreview {
   const pokemon: ParsedDeckCard[] = [];
@@ -135,109 +353,97 @@ export function parsePokemonDecklist(text: string): PokemonDeckParseResult {
   const warnings: string[] = [];
   const cards: ParsedDeckCard[] = [];
 
+  const normalized = text.replace(/\uFEFF/g, "");
+  const blocks = splitIntoBlocks(normalized);
+
+  if (
+    !hasExplicitSectionHeaders(normalized) &&
+    blocks.length >= 2 &&
+    blocks.length <= 3
+  ) {
+    return parseBlockedDecklist(blocks, errors, warnings);
+  }
+
   let currentSection: DeckCardCategory | null = null;
 
-  const lines = text
-    .replace(/\uFEFF/g, "")
+  const lines = normalized
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
   for (const line of lines) {
-    if (SECTION_POKEMON.test(line)) {
-      currentSection = "pokemon";
-      continue;
-    }
-    if (SECTION_TRAINER.test(line)) {
-      currentSection = "trainer";
-      continue;
-    }
-    if (SECTION_ENERGY.test(line)) {
-      currentSection = "energy";
+    const header = isSectionHeaderLine(line);
+    if (header) {
+      currentSection = header;
       continue;
     }
 
-    // Ignorar líneas de conteo de sección: "Pokémon: 20"
     if (/^(?:pokémon|pokemon|trainer|trainers|energy|energ[íi]a)\s*:\s*\d+/i.test(line)) {
       continue;
     }
 
-    const setMatch = line.match(CARD_WITH_SET_REGEX);
-    if (setMatch) {
-      const qty = parseInt(setMatch[1], 10);
-      if (qty < 1 || qty > 60) {
-        errors.push(`Cantidad no válida en la línea: ${line}`);
-        continue;
-      }
-      const name = setMatch[2].trim();
-      const category =
-        currentSection ?? categorizeByName(name);
-      cards.push({
-        qty,
-        name,
-        setCode: setMatch[3],
-        number: setMatch[4],
-        lineRaw: line,
-        category,
-      });
-      continue;
-    }
-
-    const energyMatch = line.match(ENERGY_LINE_REGEX);
-    if (energyMatch) {
-      const qty = parseInt(energyMatch[1], 10);
-      const name = energyMatch[2].trim();
-      if (isEnergyCardName(name)) {
-        cards.push({
-          qty,
-          name,
-          lineRaw: line,
-          category: currentSection ?? "energy",
-        });
-        if (!name.match(CARD_WITH_SET_REGEX)) {
-          warnings.push(
-            `Energía sin código de expansión (revisa manualmente): ${line}`
-          );
-        }
-        continue;
-      }
-    }
-
-    errors.push(`No se pudo leer la línea: ${line}`);
-  }
-
-  const cardCount = cards.reduce((sum, c) => sum + c.qty, 0);
-
-  if (cardCount !== 60) {
-    errors.push(
-      `Tu mazo tiene ${cardCount} cartas, deben ser exactamente 60.`
+    const usedSection = currentSection !== null;
+    parseDeckLine(
+      line,
+      {
+        currentSection,
+        sectionAssigned: usedSection,
+        requireSet: false,
+        allowQtyNameOnly: true,
+      },
+      cards,
+      errors
     );
   }
 
-  errors.push(...validateCopyLimit(cards));
-
-  const categories = mergeCategoryCards(cards);
-
-  return {
-    cards,
-    errors,
-    warnings,
-    cardCount,
-    categories,
-    isValid: errors.length === 0,
-  };
+  return finalizeParse(cards, errors, warnings);
 }
 
-/** Cartas sin `category` ni `lineRaw` para persistir en BD. */
-export function toStoredParsedCards(
-  cards: ParsedDeckCard[]
-): Omit<ParsedDeckCard, "category" | "lineRaw">[] {
-  return cards.map(({ qty, name, setCode, number }) => ({
+/** Cartas sin `lineRaw` para persistir en BD (incluye categoría). */
+export function toStoredParsedCards(cards: ParsedDeckCard[]): StoredDeckCard[] {
+  return cards.map(({ qty, name, setCode, number, category }) => ({
     qty,
     name,
     setCode,
     number,
+    category,
   }));
+}
+
+/** Agrupa cartas almacenadas o parseadas en secciones Pokémon / Entrenadores / Energías. */
+export function resolveDeckCategories(
+  cards: StoredDeckCard[],
+  rawText?: string
+): DeckCategoryPreview {
+  const hasStoredCategories = cards.some((c) => c.category);
+  if (hasStoredCategories) {
+    return mergeCategoryCards(
+      cards.map((c) => ({
+        qty: c.qty,
+        name: c.name,
+        setCode: c.setCode,
+        number: c.number,
+        lineRaw: "",
+        category: c.category ?? categorizeByName(c.name),
+      }))
+    );
+  }
+
+  if (rawText?.trim()) {
+    const parsed = parsePokemonDecklist(rawText);
+    if (parsed.cards.length > 0) return parsed.categories;
+  }
+
+  const withCategory: ParsedDeckCard[] = cards.map((c) => ({
+    qty: c.qty,
+    name: c.name,
+    setCode: c.setCode,
+    number: c.number,
+    lineRaw: "",
+    category: c.category ?? categorizeByName(c.name),
+  }));
+
+  return mergeCategoryCards(withCategory);
 }
 
 export function groupParsedCardsByName(

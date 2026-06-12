@@ -2,7 +2,9 @@ import { jsPDF } from "jspdf";
 import { formatDivision, type Division } from "@/lib/division";
 import {
   groupParsedCardsByName,
-  parsePokemonDecklist,
+  resolveDeckCategories,
+  type DeckCardCategory,
+  type DeckCategoryPreview,
   type ParsedDeckCard,
 } from "@/lib/deckParser";
 
@@ -11,6 +13,7 @@ export interface DecklistPdfCard {
   name: string;
   setCode?: string;
   number?: string;
+  category?: DeckCardCategory;
 }
 
 export interface DecklistPdfData {
@@ -20,6 +23,7 @@ export interface DecklistPdfData {
   division: Division | string;
   cards: DecklistPdfCard[];
   rawText?: string;
+  categories?: DeckCategoryPreview;
   cardCount: number;
   updatedAt?: Date | string;
 }
@@ -48,40 +52,9 @@ function formatDivisionLabel(division: Division | string): string {
   return division;
 }
 
-function resolveCategories(data: DecklistPdfData) {
-  if (data.rawText?.trim()) {
-    const parsed = parsePokemonDecklist(data.rawText);
-    if (parsed.cards.length > 0) {
-      return parsed.categories;
-    }
-  }
-
-  const synthetic = data.cards
-    .map((c) =>
-      c.setCode
-        ? `${c.qty} ${c.name} ${c.setCode} ${c.number ?? ""}`.trim()
-        : `${c.qty} ${c.name}`
-    )
-    .join("\n");
-
-  const parsed = parsePokemonDecklist(synthetic);
-  if (parsed.cards.length > 0) {
-    return parsed.categories;
-  }
-
-  const fallback: ParsedDeckCard[] = data.cards.map((c) => ({
-    ...c,
-    lineRaw: "",
-    category: "pokemon" as const,
-  }));
-
-  const total = fallback.reduce((s, c) => s + c.qty, 0);
-  return {
-    pokemon: fallback,
-    trainer: [] as ParsedDeckCard[],
-    energy: [] as ParsedDeckCard[],
-    totals: { pokemon: total, trainer: 0, energy: 0 },
-  };
+function resolveCategories(data: DecklistPdfData): DeckCategoryPreview {
+  if (data.categories) return data.categories;
+  return resolveDeckCategories(data.cards, data.rawText);
 }
 
 function cardLineText(card: ParsedDeckCard): string {

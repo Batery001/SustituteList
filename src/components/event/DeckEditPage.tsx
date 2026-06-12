@@ -146,6 +146,7 @@ export function DeckEditPage({ token }: { token: string }) {
             popId={submission.popId}
             division={submission.division}
             cards={submission.parsedCards}
+            rawText={submission.rawText}
             cardCount={submission.validation.cardCount}
             updatedAt={submission.updatedAt}
             readOnly={!event.canEdit}

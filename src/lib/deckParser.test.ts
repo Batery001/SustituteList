@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  categorizeByName,
   isBasicEnergy,
   isEnergyCardName,
   parsePokemonDecklist,
@@ -64,7 +65,7 @@ describe("deckParser", () => {
     assert.ok(result.errors.some((e) => e.includes("máximo permitido es 4")));
   });
 
-  it("toStoredParsedCards omite category y lineRaw", () => {
+  it("toStoredParsedCards incluye categoría", () => {
     const parsed = parsePokemonDecklist("4 Pikachu OBF 25");
     const stored = toStoredParsedCards(parsed.cards);
     assert.deepEqual(stored[0], {
@@ -72,7 +73,70 @@ describe("deckParser", () => {
       name: "Pikachu",
       setCode: "OBF",
       number: "25",
+      category: "pokemon",
     });
+  });
+
+  it("respeta bloques separados por línea en blanco (Pokémon / Entrenadores / Energías)", () => {
+    const deck = `4 Toxel PFL 67
+4 Toxtricity PFL 68
+3 Munkidori TWM 95
+1 Pecharunt ex SFA 39
+1 Pecharunt SVP 129
+1 Fezandipiti ex SFA 38
+1 Brute Bonnet TWM 118
+1 Mega Absol ex MEG 86
+1 Shaymin DRI 10
+
+4 Lillie's Determination ASC 192
+4 Team Rocket's Petrel DRI 176
+3 Boss's Orders
+4 Poké Pad POR 81
+3 Night Stretcher ASC 196
+1 Team Rocket's Watchtower ASC 210
+2 Team Rocket's Transceiver ASC 209
+1 Team Rocket's Factory DRI 173
+2 Energy Switch MEG 115
+1 Energy Recycler DRI 164
+1 Ultra Ball MEG 131
+1 Buddy-Buddy Poffin TEF 144
+1 Pokégear 3.0 BLK 84
+1 Secret Box TWM 163
+2 Air Balloon BLK 79
+1 Punk Helmet PFL 92
+
+11 Darkness Energy`;
+
+    const result = parsePokemonDecklist(deck);
+    assert.equal(result.cardCount, 60);
+    assert.equal(result.categories.totals.pokemon, 17);
+    assert.equal(result.categories.totals.trainer, 32);
+    assert.equal(result.categories.totals.energy, 11);
+    assert.ok(
+      result.categories.pokemon.every((c) => c.setCode && c.number),
+      "pokémon deben tener set"
+    );
+    assert.ok(
+      !result.categories.pokemon.some((c) =>
+        /balloon|pad|stretcher|petrel/i.test(c.name)
+      ),
+      "entrenadores no deben quedar en pokémon"
+    );
+    const boss = result.categories.trainer.find((c) =>
+      c.name.includes("Boss")
+    );
+    assert.ok(boss && !boss.setCode, "entrenador puede ir sin set");
+  });
+
+  it("categoriza entrenadores comunes por nombre", () => {
+    assert.equal(categorizeByName("Air Balloon"), "trainer");
+    assert.equal(categorizeByName("Poké Pad"), "trainer");
+    assert.equal(categorizeByName("Night Stretcher"), "trainer");
+    assert.equal(categorizeByName("Lillie's Determination"), "trainer");
+    assert.equal(categorizeByName("Team Rocket's Petrel"), "trainer");
+    assert.equal(categorizeByName("Energy Switch"), "trainer");
+    assert.equal(categorizeByName("Darkness Energy"), "energy");
+    assert.equal(categorizeByName("Mega Absol ex"), "pokemon");
   });
 });
 

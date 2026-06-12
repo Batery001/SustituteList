@@ -1,7 +1,8 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
-import { parsePokemonDecklist, toStoredParsedCards } from "@/lib/deckParser";
+import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
+import { toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
 import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
@@ -146,7 +147,7 @@ export async function POST(request: Request) {
     const birth = registration.birthDate;
     const resolvedName = registration.playerName;
 
-    const parsed = parsePokemonDecklist(rawText);
+    const parsed = await parseAndEnrichPokemonDecklist(rawText);
     if (!parsed.isValid) {
       return NextResponse.json(
         {
