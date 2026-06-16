@@ -67,8 +67,11 @@ export async function getActivePublicEvents(): Promise<PublicEventDTO[]> {
     .populate<{ storeId: IStore }>("storeId")
     .lean();
 
+  const now = Date.now();
+
   return events
     .filter((e) => e.storeId && typeof e.storeId === "object")
+    .filter((e) => e.startsAt.getTime() > now)
     .map((e) =>
       serializePublicEvent(e as unknown as PopulatedEvent)
     );

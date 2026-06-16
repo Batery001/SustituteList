@@ -24,6 +24,16 @@ export function isEventOpen(status: string): boolean {
   return normalizeEventStatus(status) === "open";
 }
 
+/** Torneo ya comenzó (hora de inicio en el pasado). */
+export function isEventStarted(startsAt: Date): boolean {
+  return Date.now() >= startsAt.getTime();
+}
+
+/** Visible como torneo vigente para jugadores (abierto y aún no empieza). */
+export function isEventActiveForPlayers(status: string, startsAt: Date): boolean {
+  return isEventOpen(status) && !isEventStarted(startsAt);
+}
+
 export function isEventDraft(status: string): boolean {
   return normalizeEventStatus(status) === "draft";
 }

@@ -33,4 +33,6 @@ export const legacyRedirects: { source: string; destination: string }[] = [
   { source: "/jugador/perfil", destination: routes.player.profile },
   { source: "/jugador/login", destination: `${routes.auth.login}?callbackUrl=%2Fdashboard%2Fplayer` },
   { source: "/jugador/registro", destination: routes.auth.register },
+  { source: "/login", destination: routes.auth.login },
+  { source: "/tienda/registro", destination: routes.auth.register },
 ];

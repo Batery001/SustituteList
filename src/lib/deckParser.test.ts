@@ -7,7 +7,7 @@ import {
   parsePokemonDecklist,
   toStoredParsedCards,
 } from "./deckParser";
-import { normalizeEventStatus, isEventOpen } from "./events/event-status";
+import { normalizeEventStatus, isEventOpen, isEventActiveForPlayers } from "./events/event-status";
 
 function deckWithQtyPerLine(qty: number, lines: number): string {
   return Array.from(
@@ -154,5 +154,14 @@ describe("event-status", () => {
     assert.equal(isEventOpen("open"), true);
     assert.equal(isEventOpen("closed"), false);
     assert.equal(isEventOpen("Finished"), false);
+  });
+
+  it("isEventActiveForPlayers exige estado abierto y fecha futura", () => {
+    const future = new Date(Date.now() + 86_400_000);
+    const past = new Date(Date.now() - 86_400_000);
+    assert.equal(isEventActiveForPlayers("open", future), true);
+    assert.equal(isEventActiveForPlayers("Active", future), true);
+    assert.equal(isEventActiveForPlayers("open", past), false);
+    assert.equal(isEventActiveForPlayers("closed", future), false);
   });
 });

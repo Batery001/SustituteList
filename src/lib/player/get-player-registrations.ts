@@ -1,5 +1,5 @@
 import { dbConnect } from "@/lib/dbConnect";
-import { isEventOpen } from "@/lib/events/event-status";
+import { isEventActiveForPlayers, isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { Registration } from "@/models/Registration";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
@@ -36,6 +36,7 @@ function serializeRegistration(
 ): PlayerRegistrationRow {
   const deadlinePassed = isDeadlinePassed(new Date(event.decklistDeadlineAt));
   const eventOpen = isEventOpen(event.status);
+  const eventActive = isEventActiveForPlayers(event.status, event.startsAt);
   const paid = reg.paymentStatus === "paid";
 
   return {
@@ -47,7 +48,7 @@ function serializeRegistration(
     startsAt: event.startsAt.toISOString(),
     decklistDeadlineAt: event.decklistDeadlineAt.toISOString(),
     deadlinePassed,
-    canUploadDeck: eventOpen && !deadlinePassed && paid,
+    canUploadDeck: eventActive && !deadlinePassed && paid,
     paymentStatus: paid ? "paid" : "pending",
     hasDecklist: Boolean(reg.decklistSubmissionId),
     deckEditToken: editToken,
@@ -106,8 +107,12 @@ export async function getPlayerRegistrations(
     rows.push(serializeRegistration(reg, event as IEvent, editToken));
   }
 
-  const active = rows.filter((r) => isEventOpen(r.eventStatus));
-  const history = rows.filter((r) => !isEventOpen(r.eventStatus));
+  const active = rows.filter((r) =>
+    isEventActiveForPlayers(r.eventStatus, new Date(r.startsAt))
+  );
+  const history = rows.filter(
+    (r) => !isEventActiveForPlayers(r.eventStatus, new Date(r.startsAt))
+  );
 
   return { active, history };
 }

@@ -31,7 +31,8 @@ export default async function TiendasPage({
   const stores = await Store.find({ slug: { $exists: true, $ne: "" } })
     .sort({ name: 1 })
     .lean();
-  const openEvents = await Event.find(OPEN_EVENT_QUERY).lean();
+  const now = new Date();
+  const openEvents = await Event.find({ ...OPEN_EVENT_QUERY, startsAt: { $gt: now } }).lean();
   const byStore = new Map<string, typeof openEvents>();
   for (const ev of openEvents) {
     const k = ev.storeId.toString();

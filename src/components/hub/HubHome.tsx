@@ -22,7 +22,8 @@ export async function HubHome({ events }: { events: PublicEventDTO[] }) {
       const storeDocs = await Store.find({ slug: { $exists: true, $ne: "" } })
         .sort({ name: 1 })
         .lean();
-      const openEvents = await Event.find(OPEN_EVENT_QUERY).lean();
+      const now = new Date();
+      const openEvents = await Event.find({ ...OPEN_EVENT_QUERY, startsAt: { $gt: now } }).lean();
       const byStore = new Map<string, typeof openEvents>();
       for (const ev of openEvents) {
         const k = ev.storeId.toString();
@@ -87,7 +88,7 @@ export async function HubHome({ events }: { events: PublicEventDTO[] }) {
       <section className="text-sm text-sky-100/50">
         <h3 className="font-semibold text-sky-100/90">¿Eres tienda?</h3>
         <p className="mt-1">
-          <Link href="/tienda/registro" className="sub-link underline">
+          <Link href="/auth/register" className="sub-link underline">
             Registra tu tienda
           </Link>{" "}
           y publica League Cups y Challenges.

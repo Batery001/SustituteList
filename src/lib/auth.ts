@@ -4,4 +4,3 @@ export {
   getPlayerId,
   createPlayerSessionToken,
 } from "@/lib/auth/player-session";
-export { signInWithEmailPassword } from "@/lib/auth/sign-in";
