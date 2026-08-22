@@ -44,7 +44,8 @@ export const msg = {
     paymentRequired:
       "Debes pagar la inscripción en tienda antes de registrar tu lista",
     duplicateRegistration:
-      "Ya estás inscrito en este torneo. Usa tu enlace personal.",
+      "Este Pop ID ya está inscrito en este torneo. Un jugador no puede inscribirse dos veces.",
+    invalidPopId: "El Pop ID no es válido.",
     registrationNotFound: "Inscripción no encontrada",
     registrationClosed: "Las inscripciones están cerradas para este torneo",
     markPaidFailed: "No se pudo marcar como pagado",

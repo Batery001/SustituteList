@@ -7,6 +7,11 @@ import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { getPlayerId } from "@/lib/player-auth";
+import {
+  isMongoDuplicateKey,
+  isValidPopId,
+  normalizePopId,
+} from "@/lib/pop-id";
 import { Event } from "@/models/Event";
 import { Player } from "@/models/Player";
 import { Registration } from "@/models/Registration";
@@ -110,7 +115,7 @@ export async function POST(request: Request) {
 
     const playerId = await getPlayerId();
     let playerName = body.playerName?.trim();
-    let popId = body.popId?.trim();
+    let rawPopId = body.popId?.trim();
     let birth: Date;
 
     if (playerId) {
@@ -119,10 +124,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: msg.api.playerNotFound }, { status: 401 });
       }
       playerName = player.playerName;
-      popId = player.popId;
+      rawPopId = player.popId;
       birth = player.birthDate;
     } else {
-      if (!playerName || !popId || !body.birthDate) {
+      if (!playerName || !rawPopId || !body.birthDate) {
         return NextResponse.json(
           { error: msg.api.allFieldsRequired },
           { status: 400 }
@@ -134,18 +139,54 @@ export async function POST(request: Request) {
       }
     }
 
-    const existing = await Registration.findOne({
-      eventId: event._id,
-      popId: popId!,
-    });
+    if (!rawPopId || !isValidPopId(rawPopId)) {
+      return NextResponse.json({ error: msg.api.invalidPopId }, { status: 400 });
+    }
+
+    const popId = normalizePopId(rawPopId);
+
+    const existingByPlayer = playerId
+      ? await Registration.findOne({ eventId: event._id, playerId })
+      : null;
+
+    const existingByPop =
+      existingByPlayer ??
+      (await Registration.findOne({ eventId: event._id, popId }));
+
+    let existing = existingByPop;
+    if (!existing) {
+      const inEvent = await Registration.find({ eventId: event._id }).select(
+        "popId playerId accessToken paymentStatus"
+      );
+      existing =
+        inEvent.find((row) => normalizePopId(row.popId) === popId) ?? null;
+    }
 
     if (existing) {
+      const ownsRegistration =
+        Boolean(playerId) &&
+        (existing.playerId?.toString() === playerId ||
+          (!existing.playerId && normalizePopId(existing.popId) === popId));
+
+      if (ownsRegistration) {
+        if (playerId && !existing.playerId) {
+          await Registration.updateOne(
+            { _id: existing._id },
+            { $set: { playerId, popId } }
+          );
+        }
+        return NextResponse.json(
+          {
+            error: msg.api.duplicateRegistration,
+            accessToken: existing.accessToken,
+            paymentStatus: existing.paymentStatus,
+          },
+          { status: 409 }
+        );
+      }
+
       return NextResponse.json(
-        {
-          error: msg.api.duplicateRegistration,
-          accessToken: existing.accessToken,
-          paymentStatus: existing.paymentStatus,
-        },
+        { error: msg.api.duplicateRegistration },
         { status: 409 }
       );
     }
@@ -158,29 +199,39 @@ export async function POST(request: Request) {
       event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0;
     const isFree = entryFee <= 0;
 
-    const registration = await Registration.create({
-      eventId: event._id,
-      playerId: playerId ? playerId : undefined,
-      playerName: playerName!,
-      popId: popId!,
-      birthDate: birth!,
-      division,
-      paymentStatus: isFree ? "paid" : "pending",
-      paidAt: isFree ? new Date() : undefined,
-      accessToken,
-    });
+    try {
+      const registration = await Registration.create({
+        eventId: event._id,
+        playerId: playerId ? playerId : undefined,
+        playerName: playerName!,
+        popId,
+        birthDate: birth!,
+        division,
+        paymentStatus: isFree ? "paid" : "pending",
+        paidAt: isFree ? new Date() : undefined,
+        accessToken,
+      });
 
-    return NextResponse.json(
-      {
-        registration: {
-          id: registration._id.toString(),
-          accessToken: registration.accessToken,
-          paymentStatus: registration.paymentStatus,
-          division: registration.division,
+      return NextResponse.json(
+        {
+          registration: {
+            id: registration._id.toString(),
+            accessToken: registration.accessToken,
+            paymentStatus: registration.paymentStatus,
+            division: registration.division,
+          },
         },
-      },
-      { status: 201 }
-    );
+        { status: 201 }
+      );
+    } catch (err) {
+      if (isMongoDuplicateKey(err)) {
+        return NextResponse.json(
+          { error: msg.api.duplicateRegistration },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
   } catch (err) {
     console.error("Registration error:", err);
     return NextResponse.json({ error: msg.api.saveFailed }, { status: 500 });

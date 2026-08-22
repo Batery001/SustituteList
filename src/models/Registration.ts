@@ -42,6 +42,10 @@ const RegistrationSchema = new Schema(
 );
 
 RegistrationSchema.index({ eventId: 1, popId: 1 }, { unique: true });
+RegistrationSchema.index(
+  { eventId: 1, playerId: 1 },
+  { unique: true, sparse: true }
+);
 
 export type IRegistration = InferSchemaType<typeof RegistrationSchema> & {
   _id: mongoose.Types.ObjectId;

@@ -9,6 +9,7 @@ import { OPEN_EVENT_QUERY } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { serializeValidation } from "@/lib/validation-display";
+import { normalizePopId } from "@/lib/pop-id";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
@@ -103,10 +104,18 @@ export async function POST(request: Request) {
           playerId,
         });
       } else if (lookupPopId) {
+        const normalizedLookup = normalizePopId(lookupPopId);
         registration = await Registration.findOne({
           eventId: event._id,
-          popId: lookupPopId,
+          popId: normalizedLookup,
         });
+        if (!registration) {
+          const inEvent = await Registration.find({ eventId: event._id });
+          registration =
+            inEvent.find(
+              (row) => normalizePopId(row.popId) === normalizedLookup
+            ) ?? null;
+        }
       }
     }
 

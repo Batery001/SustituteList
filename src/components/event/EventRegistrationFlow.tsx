@@ -328,7 +328,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
               />
               <input
                 type="text"
-                placeholder="Pop ID"
+                placeholder="Pop ID (uno por persona)"
                 required
                 value={guestPopId}
                 onChange={(e) => setGuestPopId(e.target.value)}

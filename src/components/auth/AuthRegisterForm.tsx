@@ -162,6 +162,9 @@ function AuthRegisterFormInner() {
               onChange={(e) => setPopId(e.target.value)}
               className="sub-input w-full px-3 py-3"
             />
+            <p className="mt-1 text-xs text-sky-100/45">
+              Un Pop ID por persona. No puedes usarlo en dos cuentas.
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-sm text-sky-200/80">
