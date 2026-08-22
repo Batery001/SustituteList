@@ -19,9 +19,6 @@ interface EventRegistrationFlowProps {
   deadlineLabel: string;
   entryFeeCents: number;
   storeName: string;
-  storeAddress?: string;
-  storeCity?: string;
-  storePhone?: string;
 }
 
 type RegistrationState = {
@@ -62,9 +59,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     deadlineLabel,
     entryFeeCents,
     storeName,
-    storeAddress,
-    storeCity,
-    storePhone,
   } = props;
 
   const searchParams = useSearchParams();
@@ -92,7 +86,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
   const [guestBirth, setGuestBirth] = useState("");
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [onlinePaymentsAvailable, setOnlinePaymentsAvailable] = useState(false);
 
   const resolveRegistration = useCallback(
     async (
@@ -141,7 +134,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     if (reg?.accessToken) {
       saveEventRegistrationToken(eventSlug, reg.accessToken);
     }
-    setOnlinePaymentsAvailable(evData.onlinePaymentsAvailable ?? false);
     setLoading(false);
   }, [eventSlug, resolveRegistration]);
 
@@ -174,7 +166,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       if (reg?.accessToken) {
         saveEventRegistrationToken(eventSlug, reg.accessToken);
       }
-      setOnlinePaymentsAvailable(evData.onlinePaymentsAvailable ?? false);
       setLoading(false);
     })();
     return () => {
@@ -245,7 +236,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
 
   const steps = [
     { id: "register", label: "Inscripción", num: 1 },
-    { id: "pay", label: entryFeeCents > 0 ? "Pago" : "Confirmado", num: 2 },
+    { id: "pay", label: entryFeeCents > 0 ? "Asistencia" : "Confirmado", num: 2 },
     { id: "decklist", label: "Tu mazo", num: 3 },
   ];
 
@@ -315,7 +306,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             {formatFee(entryFeeCents)} · {storeName}
           </p>
           <p className="mt-2 text-xs text-sky-100/45">
-            Todo en esta página: inscripción, pago y lista de 60 cartas.
+            Todo en esta página: inscripción, asistencia y lista de 60 cartas.
           </p>
 
           {player ? (
@@ -404,13 +395,8 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       {step === "pay" && registration && (
         <OnlinePaymentPanel
           registrationAccessToken={registration.accessToken}
-          entryFeeCents={entryFeeCents}
-          storeName={storeName}
-          storeAddress={storeAddress}
-          storeCity={storeCity}
-          storePhone={storePhone}
-          onlinePaymentsAvailable={onlinePaymentsAvailable}
-          onRefresh={load}
+          confirmed={registration.paymentStatus === "paid"}
+          onConfirmed={load}
         />
       )}
 

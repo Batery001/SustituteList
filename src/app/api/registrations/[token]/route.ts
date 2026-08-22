@@ -7,6 +7,7 @@ import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
 import { Store } from "@/models/Store";
 import { isTransbankConfigured } from "@/lib/transbank";
+import { markRegistrationPaid } from "@/lib/payments/mark-registration-paid";
 
 export async function GET(
   _request: Request,
@@ -75,4 +76,53 @@ export async function GET(
     deckEditToken,
     onlinePaymentsAvailable,
   });
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params;
+
+  let action = "confirm-attendance";
+  try {
+    const body = (await request.json()) as { action?: string };
+    if (body.action) action = body.action;
+  } catch {
+    // sin cuerpo: confirmar asistencia
+  }
+
+  if (action !== "confirm-attendance") {
+    return NextResponse.json({ error: "Acción no válida" }, { status: 400 });
+  }
+
+  try {
+    await connectDB();
+    const registration = await Registration.findOne({ accessToken: token });
+    if (!registration) {
+      return NextResponse.json(
+        { error: msg.api.registrationNotFound },
+        { status: 404 }
+      );
+    }
+
+    const ok = await markRegistrationPaid(registration._id.toString());
+    if (!ok) {
+      return NextResponse.json(
+        { error: msg.api.markPaidFailed },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      paymentStatus: "paid",
+    });
+  } catch (err) {
+    console.error("Confirm attendance error:", err);
+    return NextResponse.json(
+      { error: msg.api.markPaidFailed },
+      { status: 500 }
+    );
+  }
 }

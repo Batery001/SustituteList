@@ -73,9 +73,6 @@ export default async function EventPage({
               event.entryFeeCents ?? store?.defaultEntryFeeCents ?? 0
             }
             storeName={store?.name ?? "Tienda"}
-            storeAddress={store?.address}
-            storeCity={store?.city}
-            storePhone={store?.phone}
           />
         </Suspense>
       </main>

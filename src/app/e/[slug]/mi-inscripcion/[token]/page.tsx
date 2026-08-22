@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
-import { MiInscripcionRedirect } from "@/components/event/MiInscripcionRedirect";
+import { MiInscripcionStatus } from "@/components/event/MiInscripcionStatus";
 import { connectDB } from "@/lib/db";
 import { Event } from "@/models/Event";
 
@@ -21,9 +21,9 @@ export default async function MiInscripcionPage({
 
   return (
     <div className="mx-auto min-h-full max-w-lg">
-      <BrandHeader subtitle="Torneo" />
+      <BrandHeader subtitle="Estado de inscripción" />
       <main className="px-4 py-6">
-        <MiInscripcionRedirect eventSlug={slug} accessToken={token} />
+        <MiInscripcionStatus eventSlug={slug} accessToken={token} />
       </main>
     </div>
   );
