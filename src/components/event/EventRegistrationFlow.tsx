@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { EventDeckInline } from "@/components/event/EventDeckInline";
 import { EventDeckStep } from "@/components/event/EventDeckStep";
 import { CancelAttendanceButton } from "@/components/event/CancelAttendanceButton";
 import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
@@ -425,15 +424,16 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
               Lista enviada
             </p>
             <p className="mt-1 text-sm text-sky-100/55">
-              La tienda ya tiene tu mazo. Puedes cambiarlo aquí hasta{" "}
-              {deadlineLabel}.
+              La tienda ya tiene tu mazo. Las cartas no se muestran en esta
+              página. Puedes cambiarlo hasta {deadlineLabel}.
             </p>
+            <Link
+              href={`/e/${eventSlug}/deck/${registration.deckEditToken}`}
+              className="sub-btn-primary mt-4 inline-flex rounded-xl px-4 py-3 text-sm font-semibold"
+            >
+              Cambiar mi lista
+            </Link>
           </div>
-          <EventDeckInline
-            deckEditToken={registration.deckEditToken}
-            registrationAccessToken={registration.accessToken}
-            deadlineLabel={deadlineLabel}
-          />
         </section>
       )}
 
@@ -443,13 +443,9 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             Inscripción o plazo de lista cerrado
           </p>
           {registration?.deckEditToken && (
-            <div className="mt-4">
-              <EventDeckInline
-                deckEditToken={registration.deckEditToken}
-                registrationAccessToken={registration.accessToken}
-                deadlineLabel={deadlineLabel}
-              />
-            </div>
+            <p className="mt-3 text-sm text-sky-100/55">
+              Tu lista ya está en la tienda. No se muestra en público.
+            </p>
           )}
         </div>
       )}

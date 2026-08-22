@@ -207,7 +207,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
           {copied ? "¡Link copiado!" : "Copiar link para jugadores"}
         </Button>
         <Link
-          href={`/e/${event.slug}`}
+          href={`/e/${event.slug}?vista=publica`}
           target="_blank"
           className="rounded-lg border border-sky-500/25 px-4 py-2 text-sm text-sky-200"
         >
@@ -272,11 +272,19 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                   {r.hasDecklist ? (
                     <>
                       <span className="text-emerald-300">Lista ✓</span>
-                      {r.deckEditToken && (
-                        <DownloadDeckPdfButton
-                          token={r.deckEditToken}
-                          className="px-2 py-1 text-xs"
-                        />
+                      {r.deckEditToken && event && (
+                        <>
+                          <Link
+                            href={`/e/${event.slug}/deck/${r.deckEditToken}`}
+                            className="rounded-md border border-sky-500/30 px-2 py-1 text-sky-200 hover:bg-sky-900/50"
+                          >
+                            Ver lista
+                          </Link>
+                          <DownloadDeckPdfButton
+                            token={r.deckEditToken}
+                            className="px-2 py-1 text-xs"
+                          />
+                        </>
                       )}
                     </>
                   ) : (

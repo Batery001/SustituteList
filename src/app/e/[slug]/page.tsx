@@ -1,9 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BrandHeader } from "@/components/BrandHeader";
 import { Suspense } from "react";
 import { EventRegistrationFlow } from "@/components/EventRegistrationFlow";
 import { EventTimePanel } from "@/components/EventTimePanel";
+import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
+import { routes } from "@/lib/routes";
 import { isEventOpen } from "@/lib/events/event-status";
 import {
   formatDeadline,
@@ -19,10 +21,13 @@ export const dynamic = "force-dynamic";
 
 export default async function EventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ vista?: string }>;
 }) {
   const { slug } = await params;
+  const { vista } = await searchParams;
 
   if (!process.env.MONGODB_URI) {
     return (
@@ -36,6 +41,15 @@ export default async function EventPage({
 
   const event = await Event.findOne({ slug }).lean();
   if (!event) notFound();
+
+  const viewerStoreId = await getAdminStoreId();
+  if (
+    vista !== "publica" &&
+    viewerStoreId &&
+    event.storeId.toString() === viewerStoreId
+  ) {
+    redirect(routes.store.event(event._id.toString()));
+  }
 
   const store = await Store.findById(event.storeId).lean();
   if (store) await syncStoreTimezone(store._id.toString());
