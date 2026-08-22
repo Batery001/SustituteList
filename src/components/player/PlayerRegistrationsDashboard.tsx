@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { PlayerRegistrationRow } from "@/lib/player/get-player-registrations";
-import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat("es-CL", {
@@ -68,12 +67,6 @@ function RegistrationCard({ reg }: { reg: PlayerRegistrationRow }) {
           </span>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {deckAction}
-            {reg.hasDecklist && reg.deckEditToken && (
-              <DownloadDeckPdfButton
-                token={reg.deckEditToken}
-                className="px-2 py-1.5 text-xs"
-              />
-            )}
           </div>
         </div>
       </div>

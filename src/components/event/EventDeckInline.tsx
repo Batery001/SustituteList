@@ -126,7 +126,6 @@ export function EventDeckInline({
           cardCount={submission.validation.cardCount}
           updatedAt={submission.updatedAt}
           readOnly={!event.canEdit}
-          pdfToken={deckEditToken}
         />
         {event.canEdit && (
           <Button

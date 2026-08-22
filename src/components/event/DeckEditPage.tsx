@@ -147,7 +147,6 @@ export function DeckEditPage({ token }: { token: string }) {
             cardCount={submission.validation.cardCount}
             updatedAt={submission.updatedAt}
             readOnly={!event.canEdit}
-            pdfToken={token}
           />
           {event.canEdit && (
             <Button

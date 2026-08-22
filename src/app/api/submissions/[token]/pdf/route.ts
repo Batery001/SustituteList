@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAdminStoreId } from "@/lib/auth";
 import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
 import { connectDB } from "@/lib/db";
 import {
@@ -35,6 +36,11 @@ export async function GET(
     const event = await Event.findById(submission.eventId).lean();
     if (!event) {
       return NextResponse.json({ error: msg.api.eventNotFound }, { status: 404 });
+    }
+
+    const storeId = await getAdminStoreId();
+    if (!storeId || event.storeId.toString() !== storeId) {
+      return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
     }
 
     const parsed = await parseAndEnrichPokemonDecklist(submission.rawText ?? "");
