@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EventDeckInline } from "@/components/event/EventDeckInline";
 import { EventDeckStep } from "@/components/event/EventDeckStep";
+import { CancelAttendanceButton } from "@/components/event/CancelAttendanceButton";
 import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
 import { Button } from "@/components/ui/Button";
 import { formatDivision } from "@/lib/division";
@@ -196,19 +197,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       });
       const data = await res.json();
 
-      if (res.status === 409 && data.accessToken) {
-        saveEventRegistrationToken(eventSlug, data.accessToken);
-        setRegistration({
-          accessToken: data.accessToken,
-          paymentStatus: data.paymentStatus ?? "pending",
-          deckEditToken: null,
-          playerName: displayName,
-          popId: displayPopId,
-        });
-        setError("Ya estabas inscrito. Continúa con el siguiente paso.");
-        return;
-      }
-
       if (!res.ok) {
         setError(data.error ?? "No se pudo inscribir");
         return;
@@ -219,9 +207,10 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       setRegistration({
         accessToken: token,
         paymentStatus: data.registration.paymentStatus,
-        deckEditToken: null,
-        playerName: player?.playerName ?? guestName,
-        popId: player?.popId ?? guestPopId,
+        deckEditToken: data.deckEditToken ?? null,
+        playerName:
+          data.registration.playerName ?? player?.playerName ?? guestName,
+        popId: data.registration.popId ?? player?.popId ?? guestPopId,
       });
     } catch {
       setError("Error de red. Intenta de nuevo.");
@@ -315,6 +304,10 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
               <p className="text-sky-100/60">
                 Pop {player.popId} · {formatDivision(player.division as "master")}
               </p>
+              <p className="mt-2 text-xs text-sky-100/45">
+                Tu Pop ID sale de la cuenta. No se puede inscribir dos veces el
+                mismo jugador.
+              </p>
             </div>
           ) : guestMode ? (
             <div className="mt-4 space-y-3">
@@ -334,6 +327,10 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
                 onChange={(e) => setGuestPopId(e.target.value)}
                 className="sub-input w-full px-3 py-2 text-sm"
               />
+              <p className="text-xs text-sky-100/45">
+                Si ya te inscribiste sin cuenta, usa el mismo Pop ID para volver
+                a tu lista o cancelar.
+              </p>
               <input
                 type="date"
                 required
@@ -453,6 +450,17 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             </div>
           )}
         </div>
+      )}
+
+      {registration && step !== "register" && (
+        <CancelAttendanceButton
+          accessToken={registration.accessToken}
+          eventSlug={eventSlug}
+          onCancelled={() => {
+            setRegistration(null);
+            setError(null);
+          }}
+        />
       )}
     </div>
   );

@@ -17,6 +17,52 @@ import { Player } from "@/models/Player";
 import { Registration } from "@/models/Registration";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Store } from "@/models/Store";
+import type { Types } from "mongoose";
+
+async function resumeRegistrationResponse(
+  existing: {
+    _id: Types.ObjectId;
+    accessToken: string;
+    paymentStatus: string;
+    playerName: string;
+    popId: string;
+    division: string;
+    decklistSubmissionId?: Types.ObjectId | null;
+  },
+  eventId: Types.ObjectId
+) {
+  let deckEditToken: string | null = null;
+  if (existing.decklistSubmissionId) {
+    const byId = await DecklistSubmission.findById(
+      existing.decklistSubmissionId
+    )
+      .select("editToken")
+      .lean();
+    deckEditToken = byId?.editToken ?? null;
+  }
+  if (!deckEditToken) {
+    const byPop = await DecklistSubmission.findOne({
+      eventId,
+      popId: normalizePopId(existing.popId),
+    })
+      .select("editToken")
+      .lean();
+    deckEditToken = byPop?.editToken ?? null;
+  }
+
+  return NextResponse.json({
+    alreadyRegistered: true,
+    registration: {
+      id: existing._id.toString(),
+      accessToken: existing.accessToken,
+      paymentStatus: existing.paymentStatus,
+      division: existing.division,
+      playerName: existing.playerName,
+      popId: existing.popId,
+    },
+    deckEditToken,
+  });
+}
 
 export async function GET(request: Request) {
   const storeId = await getAdminStoreId();
@@ -156,39 +202,42 @@ export async function POST(request: Request) {
     let existing = existingByPop;
     if (!existing) {
       const inEvent = await Registration.find({ eventId: event._id }).select(
-        "popId playerId accessToken paymentStatus"
+        "popId playerId accessToken paymentStatus playerName division decklistSubmissionId"
       );
       existing =
         inEvent.find((row) => normalizePopId(row.popId) === popId) ?? null;
     }
 
     if (existing) {
-      const ownsRegistration =
-        Boolean(playerId) &&
-        (existing.playerId?.toString() === playerId ||
-          (!existing.playerId && normalizePopId(existing.popId) === popId));
+      if (playerId) {
+        const ownsRegistration =
+          existing.playerId?.toString() === playerId ||
+          (!existing.playerId && normalizePopId(existing.popId) === popId);
 
-      if (ownsRegistration) {
-        if (playerId && !existing.playerId) {
+        if (!ownsRegistration) {
+          return NextResponse.json(
+            { error: msg.api.duplicateRegistration },
+            { status: 409 }
+          );
+        }
+
+        if (!existing.playerId) {
           await Registration.updateOne(
             { _id: existing._id },
             { $set: { playerId, popId } }
           );
         }
+        return resumeRegistrationResponse(existing, event._id);
+      }
+
+      if (existing.playerId) {
         return NextResponse.json(
-          {
-            error: msg.api.duplicateRegistration,
-            accessToken: existing.accessToken,
-            paymentStatus: existing.paymentStatus,
-          },
+          { error: msg.api.duplicateRegistration },
           { status: 409 }
         );
       }
 
-      return NextResponse.json(
-        { error: msg.api.duplicateRegistration },
-        { status: 409 }
-      );
+      return resumeRegistrationResponse(existing, event._id);
     }
 
     const accessToken = randomBytes(24).toString("hex");
@@ -225,6 +274,13 @@ export async function POST(request: Request) {
       );
     } catch (err) {
       if (isMongoDuplicateKey(err)) {
+        const again = await Registration.findOne({
+          eventId: event._id,
+          popId,
+        });
+        if (again) {
+          return resumeRegistrationResponse(again, event._id);
+        }
         return NextResponse.json(
           { error: msg.api.duplicateRegistration },
           { status: 409 }

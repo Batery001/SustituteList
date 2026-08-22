@@ -126,3 +126,40 @@ export async function POST(
     );
   }
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params;
+
+  try {
+    await connectDB();
+    const registration = await Registration.findOne({ accessToken: token });
+    if (!registration) {
+      return NextResponse.json(
+        { error: msg.api.registrationNotFound },
+        { status: 404 }
+      );
+    }
+
+    if (registration.decklistSubmissionId) {
+      await DecklistSubmission.deleteOne({
+        _id: registration.decklistSubmissionId,
+      });
+    }
+    await DecklistSubmission.deleteMany({
+      eventId: registration.eventId,
+      popId: registration.popId,
+    });
+    await Registration.deleteOne({ _id: registration._id });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("Cancel attendance error:", err);
+    return NextResponse.json(
+      { error: msg.api.cancelRegistrationFailed },
+      { status: 500 }
+    );
+  }
+}

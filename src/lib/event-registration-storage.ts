@@ -20,3 +20,12 @@ export function getEventRegistrationToken(eventSlug: string): string | null {
     return null;
   }
 }
+
+export function clearEventRegistrationToken(eventSlug: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(`${PREFIX}${eventSlug}`);
+  } catch {
+    // localStorage no disponible
+  }
+}
