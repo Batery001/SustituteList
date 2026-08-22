@@ -24,7 +24,9 @@ export function DeckUploadForm({
       setLoadingDeck(false);
       return;
     }
-    const res = await fetch(`/api/submissions/${registration.deckEditToken}`);
+    const res = await fetch(`/api/submissions/${registration.deckEditToken}`, {
+      credentials: "same-origin",
+    });
     if (res.ok) {
       const data = await res.json();
       setInitialRawText(data.submission?.rawText ?? "");

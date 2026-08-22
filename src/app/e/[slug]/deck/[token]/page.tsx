@@ -6,13 +6,13 @@ export default async function PlayerDeckPage({
 }: {
   params: Promise<{ slug: string; token: string }>;
 }) {
-  const { token } = await params;
+  const { slug, token } = await params;
 
   return (
     <div className="mx-auto min-h-full max-w-lg">
       <BrandHeader subtitle="Mi lista" />
       <main className="px-4 py-6">
-        <DeckEditPage token={token} />
+        <DeckEditPage slug={slug} token={token} />
       </main>
     </div>
   );

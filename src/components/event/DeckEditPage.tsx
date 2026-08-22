@@ -7,6 +7,10 @@ import { EventTimePanel } from "@/components/EventTimePanel";
 import { Button } from "@/components/ui/Button";
 import type { Division } from "@/lib/division";
 import { getValidationErrors } from "@/lib/validation-display";
+import {
+  decklistAuthHeaders,
+  getEventRegistrationToken,
+} from "@/lib/event-registration-storage";
 
 interface DeckData {
   submission: {
@@ -28,34 +32,51 @@ interface DeckData {
   store: { timezone: string };
 }
 
-export function DeckEditPage({ token }: { token: string }) {
+export function DeckEditPage({
+  slug,
+  token,
+}: {
+  slug: string;
+  token: string;
+}) {
   const [data, setData] = useState<DeckData | null>(null);
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/submissions/${token}`);
+    const res = await fetch(`/api/submissions/${token}`, {
+      headers: decklistAuthHeaders(getEventRegistrationToken(slug)),
+    });
     if (!res.ok) {
-      setError("Lista no encontrada");
+      setError(
+        res.status === 401
+          ? "Solo tú y la tienda pueden ver esta lista."
+          : "Lista no encontrada"
+      );
       setLoading(false);
       return;
     }
     const json = (await res.json()) as DeckData;
     setData(json);
     setLoading(false);
-  }, [token]);
+  }, [slug, token]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch(`/api/submissions/${token}`);
+      const res = await fetch(`/api/submissions/${token}`, {
+        headers: decklistAuthHeaders(getEventRegistrationToken(slug)),
+      });
       if (cancelled) return;
       if (!res.ok) {
-        setError("Lista no encontrada");
+        setError(
+          res.status === 401
+            ? "Solo tú y la tienda pueden ver esta lista."
+            : "Lista no encontrada"
+        );
         setLoading(false);
         return;
       }
@@ -67,7 +88,7 @@ export function DeckEditPage({ token }: { token: string }) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [slug, token]);
 
   async function handleSave(rawText: string) {
     setSaving(true);
@@ -76,7 +97,10 @@ export function DeckEditPage({ token }: { token: string }) {
     try {
       const res = await fetch(`/api/submissions/${token}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...decklistAuthHeaders(getEventRegistrationToken(slug)),
+        },
         body: JSON.stringify({ rawText }),
       });
       const json = await res.json();
@@ -94,12 +118,6 @@ export function DeckEditPage({ token }: { token: string }) {
     } finally {
       setSaving(false);
     }
-  }
-
-  function copyLink() {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   if (loading) {
@@ -125,15 +143,6 @@ export function DeckEditPage({ token }: { token: string }) {
         deadline={new Date(event.decklistDeadlineAt)}
         timeZone={store.timezone}
         canSubmit={event.canEdit}
-        footer={
-          <button
-            type="button"
-            onClick={copyLink}
-            className="sub-link mt-3 text-sm font-semibold underline"
-          >
-            {copied ? "¡Enlace copiado!" : "Copiar mi enlace personal"}
-          </button>
-        }
       />
 
       {mode === "view" ? (
@@ -172,11 +181,6 @@ export function DeckEditPage({ token }: { token: string }) {
           saved={saved}
         />
       )}
-
-      <p className="text-center text-xs text-zinc-600">
-        Guarda esta página en favoritos — es tu único enlace para editar en este
-        torneo.
-      </p>
     </div>
   );
 }

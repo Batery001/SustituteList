@@ -6,6 +6,7 @@ import { isEventOpen } from "@/lib/events/event-status";
 import { isDeadlinePassed } from "@/lib/event-utils";
 import { msg } from "@/lib/messages";
 import { serializeValidation } from "@/lib/validation-display";
+import { getDecklistAccess } from "@/lib/auth/decklist-access";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
@@ -26,6 +27,11 @@ export async function GET(
     const event = await Event.findById(submission.eventId).lean();
     if (!event) {
       return NextResponse.json({ error: msg.api.eventNotFound }, { status: 404 });
+    }
+
+    const access = await getDecklistAccess(submission, event);
+    if (!access) {
+      return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
     }
 
     const store = await Store.findById(event.storeId).lean();
@@ -63,7 +69,10 @@ export async function GET(
         slug: event.slug,
         decklistDeadlineAt: event.decklistDeadlineAt,
         deadlinePassed,
-        canEdit: isEventOpen(event.status) && !deadlinePassed,
+        canEdit:
+          access === "owner" &&
+          isEventOpen(event.status) &&
+          !deadlinePassed,
       },
       store: store
         ? { name: store.name, timezone: store.timezone }
@@ -101,6 +110,11 @@ export async function PUT(
     const event = await Event.findById(submission.eventId);
     if (!event || !isEventOpen(event.status)) {
       return NextResponse.json({ error: msg.api.eventClosed }, { status: 403 });
+    }
+
+    const access = await getDecklistAccess(submission, event);
+    if (access !== "owner") {
+      return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
     }
 
     if (isDeadlinePassed(new Date(event.decklistDeadlineAt))) {

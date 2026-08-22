@@ -431,6 +431,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           </div>
           <EventDeckInline
             deckEditToken={registration.deckEditToken}
+            registrationAccessToken={registration.accessToken}
             deadlineLabel={deadlineLabel}
           />
         </section>
@@ -445,6 +446,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             <div className="mt-4">
               <EventDeckInline
                 deckEditToken={registration.deckEditToken}
+                registrationAccessToken={registration.accessToken}
                 deadlineLabel={deadlineLabel}
               />
             </div>

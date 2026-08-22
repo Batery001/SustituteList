@@ -6,6 +6,7 @@ import { DeckView } from "@/components/DeckView";
 import { Button } from "@/components/ui/Button";
 import type { Division } from "@/lib/division";
 import { getValidationErrors } from "@/lib/validation-display";
+import { decklistAuthHeaders } from "@/lib/event-registration-storage";
 
 interface DeckData {
   submission: {
@@ -32,9 +33,11 @@ interface DeckData {
 
 export function EventDeckInline({
   deckEditToken,
+  registrationAccessToken,
   deadlineLabel,
 }: {
   deckEditToken: string;
+  registrationAccessToken?: string | null;
   deadlineLabel: string;
 }) {
   const [data, setData] = useState<DeckData | null>(null);
@@ -45,7 +48,9 @@ export function EventDeckInline({
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/submissions/${deckEditToken}`);
+    const res = await fetch(`/api/submissions/${deckEditToken}`, {
+      headers: decklistAuthHeaders(registrationAccessToken),
+    });
     if (!res.ok) {
       setError("No se pudo cargar la lista");
       setLoading(false);
@@ -54,12 +59,14 @@ export function EventDeckInline({
     const json = (await res.json()) as DeckData;
     setData(json);
     setLoading(false);
-  }, [deckEditToken]);
+  }, [deckEditToken, registrationAccessToken]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch(`/api/submissions/${deckEditToken}`);
+      const res = await fetch(`/api/submissions/${deckEditToken}`, {
+        headers: decklistAuthHeaders(registrationAccessToken),
+      });
       if (cancelled) return;
       if (!res.ok) {
         setError("No se pudo cargar la lista");
@@ -73,7 +80,7 @@ export function EventDeckInline({
     return () => {
       cancelled = true;
     };
-  }, [deckEditToken]);
+  }, [deckEditToken, registrationAccessToken]);
 
   async function handleSave(rawText: string) {
     setSaving(true);
@@ -82,7 +89,10 @@ export function EventDeckInline({
     try {
       const res = await fetch(`/api/submissions/${deckEditToken}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...decklistAuthHeaders(registrationAccessToken),
+        },
         body: JSON.stringify({ rawText }),
       });
       const json = await res.json();

@@ -29,3 +29,10 @@ export function clearEventRegistrationToken(eventSlug: string): void {
     // localStorage no disponible
   }
 }
+
+export function decklistAuthHeaders(
+  registrationAccessToken?: string | null
+): HeadersInit {
+  if (!registrationAccessToken) return {};
+  return { "X-Registration-Token": registrationAccessToken };
+}
