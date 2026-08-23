@@ -33,6 +33,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [evRes, regRes] = await Promise.all([
@@ -110,6 +111,33 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function removePlayer(r: RegistrationRow) {
+    const ok = window.confirm(
+      `¿Sacar a ${r.playerName} del torneo? Se eliminará su inscripción${
+        r.hasDecklist ? " y su lista" : ""
+      }.`
+    );
+    if (!ok) return;
+
+    setRemovingId(r._id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/registrations/${r._id}/remove`, {
+        method: "DELETE",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo sacar al jugador");
+        return;
+      }
+      await load();
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setRemovingId(null);
+    }
   }
 
   async function markPaid(registrationId: string) {
@@ -290,6 +318,14 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                   ) : (
                     <span className="text-amber-300">Sin lista</span>
                   )}
+                  <button
+                    type="button"
+                    disabled={removingId === r._id}
+                    onClick={() => void removePlayer(r)}
+                    className="rounded-md border border-rose-500/35 px-2 py-1 text-rose-300 hover:bg-rose-950/50 disabled:opacity-50"
+                  >
+                    {removingId === r._id ? "…" : "No se presentó"}
+                  </button>
                 </div>
               </li>
             ))}

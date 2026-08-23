@@ -47,6 +47,7 @@ export const msg = {
       "Este Pop ID ya está inscrito en este torneo. Un jugador no puede inscribirse dos veces.",
     invalidPopId: "El Pop ID no es válido.",
     cancelRegistrationFailed: "No se pudo cancelar la asistencia",
+    removePlayerFailed: "No se pudo sacar al jugador del torneo",
     registrationNotFound: "Inscripción no encontrada",
     registrationClosed: "Las inscripciones están cerradas para este torneo",
     markPaidFailed: "No se pudo marcar como pagado",
