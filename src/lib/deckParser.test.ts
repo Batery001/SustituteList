@@ -19,11 +19,29 @@ function deckWithQtyPerLine(qty: number, lines: number): string {
 describe("deckParser", () => {
   it("detecta energías básicas", () => {
     assert.equal(isBasicEnergy("Basic Fire Energy"), true);
+    assert.equal(isBasicEnergy("Basic {F} Energy"), true);
+    assert.equal(isBasicEnergy("{F} Energy"), true);
     assert.equal(isBasicEnergy("Darkness Energy"), true);
     assert.equal(isBasicEnergy("Fire Energy"), true);
     assert.equal(isBasicEnergy("Double Turbo Energy"), false);
     assert.equal(isBasicEnergy("Charmander"), false);
     assert.equal(isEnergyCardName("12 Basic Water Energy"), true);
+  });
+
+  it("acepta Basic {F} Energy con más de 4 copias e ignora totales", () => {
+    const deck = [
+      ...Array.from(
+        { length: 12 },
+        (_, i) => `4 Testmon ${String.fromCharCode(65 + i)} OBF ${i + 1}`
+      ),
+      "5 Basic {F} Energy",
+      "7 Basic {F} Energy SVE 10",
+      "Cartas totales: 60",
+    ].join("\n");
+    const result = parsePokemonDecklist(deck);
+    assert.equal(result.cardCount, 60);
+    assert.equal(result.isValid, true);
+    assert.equal(result.errors.length, 0);
   });
 
   it("permite más de 4 copias de energía básica tipo Limitless", () => {

@@ -171,6 +171,23 @@ function isSectionHeaderLine(line: string): DeckCardCategory | null {
   return null;
 }
 
+/** Encabezados, totales y basura de export (TCG Live / Limitless / builder). */
+function isIgnorableDeckLine(line: string): boolean {
+  if (isSectionHeaderLine(line)) return true;
+  if (
+    /^(?:pokémon|pokemon|trainer|trainers|energy|energ[íi]a)\s*:\s*\d+/i.test(
+      line
+    )
+  ) {
+    return true;
+  }
+  if (/^cartas\s+totales\s*:/i.test(line)) return true;
+  if (/^total\s+cards?\s*:/i.test(line)) return true;
+  if (/^(?:total|totales)\s*:/i.test(line)) return true;
+  if (!/^\d+\b/.test(line)) return true;
+  return false;
+}
+
 function finalizeParse(
   cards: ParsedDeckCard[],
   errors: string[],
@@ -227,11 +244,7 @@ function parseBlockedDecklist(
     }
 
     for (const line of block) {
-      if (/^(?:pokémon|pokemon|trainer|trainers|energy|energ[íi]a)\s*:\s*\d+/i.test(line)) {
-        continue;
-      }
-      const header = isSectionHeaderLine(line);
-      if (header) continue;
+      if (isIgnorableDeckLine(line)) continue;
 
       parseDeckLine(
         line,
@@ -273,9 +286,25 @@ const BASIC_ENERGY_TYPES = new Set([
   "colorless",
 ]);
 
-/** Energía básica sin límite de 4 copias (PTCGL / Limitless). */
+const BASIC_ENERGY_SYMBOLS = new Set([
+  "G",
+  "R",
+  "W",
+  "L",
+  "P",
+  "F",
+  "D",
+  "M",
+  "Y",
+  "N",
+  "C",
+]);
+
+/** Energía básica sin límite de 4 copias (PTCGL / Limitless / {F}). */
 export function isBasicEnergy(name: string): boolean {
   const n = name.trim();
+  const symbol = n.match(/^(?:Basic\s+)?\{([A-Z])\}\s+Energy$/i);
+  if (symbol && BASIC_ENERGY_SYMBOLS.has(symbol[1].toUpperCase())) return true;
   if (/^Basic(?:\s+\w+)+\s+Energy$/i.test(n)) return true;
   const match = n.match(/^(\w+)\s+Energy$/i);
   if (match && BASIC_ENERGY_TYPES.has(match[1].toLowerCase())) return true;
@@ -378,9 +407,7 @@ export function parsePokemonDecklist(text: string): PokemonDeckParseResult {
       continue;
     }
 
-    if (/^(?:pokémon|pokemon|trainer|trainers|energy|energ[íi]a)\s*:\s*\d+/i.test(line)) {
-      continue;
-    }
+    if (isIgnorableDeckLine(line)) continue;
 
     const usedSection = currentSection !== null;
     parseDeckLine(
