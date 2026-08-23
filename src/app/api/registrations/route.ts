@@ -251,7 +251,7 @@ export async function POST(request: Request) {
     try {
       const registration = await Registration.create({
         eventId: event._id,
-        playerId: playerId ? playerId : undefined,
+        ...(playerId ? { playerId } : {}),
         playerName: playerName!,
         popId,
         birthDate: birth!,
@@ -268,6 +268,8 @@ export async function POST(request: Request) {
             accessToken: registration.accessToken,
             paymentStatus: registration.paymentStatus,
             division: registration.division,
+            playerName: registration.playerName,
+            popId: registration.popId,
           },
         },
         { status: 201 }
@@ -281,15 +283,11 @@ export async function POST(request: Request) {
         if (again) {
           return resumeRegistrationResponse(again, event._id);
         }
-        return NextResponse.json(
-          { error: msg.api.duplicateRegistration },
-          { status: 409 }
-        );
       }
       throw err;
     }
   } catch (err) {
     console.error("Registration error:", err);
-    return NextResponse.json({ error: msg.api.saveFailed }, { status: 500 });
+    return NextResponse.json({ error: msg.api.registerFailed }, { status: 500 });
   }
 }

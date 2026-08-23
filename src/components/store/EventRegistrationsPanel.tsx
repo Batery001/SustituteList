@@ -23,12 +23,14 @@ type RegistrationRow = {
   deckEditToken?: string | null;
 };
 
+type DivisionTab = Division | "all";
+
 const DIVISIONS: Division[] = ["master", "senior", "junior"];
 
 export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<StoreEventSummary | null>(null);
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([]);
-  const [tab, setTab] = useState<Division>("master");
+  const [tab, setTab] = useState<DivisionTab>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -154,6 +156,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
 
   const byDivision = (d: Division) =>
     registrations.filter((r) => r.division === d);
+  const visible = tab === "all" ? registrations : byDivision(tab);
 
   const withDeck = registrations.filter((r) => r.hasDecklist).length;
   const pendingPay = registrations.filter(
@@ -249,6 +252,17 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
       </p>
 
       <div className="flex gap-1 border-b border-sky-500/15 pb-2">
+        <button
+          type="button"
+          onClick={() => setTab("all")}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+            tab === "all"
+              ? "bg-sky-500/20 text-sky-100"
+              : "text-sky-100/45 hover:text-sky-100"
+          }`}
+        >
+          Todos ({registrations.length})
+        </button>
         {DIVISIONS.map((d) => (
           <button
             key={d}
@@ -266,20 +280,24 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
       </div>
 
       <section>
-        {byDivision(tab).length === 0 ? (
+        {visible.length === 0 ? (
           <p className="text-sm text-sky-100/50">
-            Sin inscritos en {formatDivision(tab)}.
+            {tab === "all"
+              ? "Aún no hay inscritos."
+              : `Sin inscritos en ${formatDivision(tab)}.`}
           </p>
         ) : (
           <ul className="divide-y divide-sky-500/15 rounded-xl border border-sky-500/20">
-            {byDivision(tab).map((r) => (
+            {visible.map((r) => (
               <li
                 key={r._id}
                 className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"
               >
                 <div>
                   <p className="font-medium text-sky-50">{r.playerName}</p>
-                  <p className="text-xs text-sky-100/50">Pop ID {r.popId}</p>
+                  <p className="text-xs text-sky-100/50">
+                    Pop ID {r.popId} · {formatDivision(r.division)}
+                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   {r.paymentStatus === "paid" ? (

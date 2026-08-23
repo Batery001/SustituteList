@@ -12,10 +12,11 @@ export function isValidPopId(raw: string): boolean {
 }
 
 export function isMongoDuplicateKey(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code?: number }).code === 11000
-  );
+  let current: unknown = err;
+  for (let i = 0; i < 5 && current && typeof current === "object"; i++) {
+    const code = (current as { code?: number }).code;
+    if (code === 11000 || code === 11001) return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }

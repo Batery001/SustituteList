@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isValidPopId, normalizePopId } from "./pop-id";
+import { isMongoDuplicateKey, isValidPopId, normalizePopId } from "./pop-id";
 
 describe("pop-id", () => {
   it("trata el mismo Pop ID con guiones o espacios como uno solo", () => {
@@ -14,5 +14,11 @@ describe("pop-id", () => {
     assert.equal(isValidPopId(""), false);
     assert.equal(isValidPopId("12"), false);
     assert.equal(isValidPopId("2360326"), true);
+  });
+
+  it("detecta clave duplicada de Mongo también si viene envuelta", () => {
+    assert.equal(isMongoDuplicateKey({ code: 11000 }), true);
+    assert.equal(isMongoDuplicateKey({ cause: { code: 11000 } }), true);
+    assert.equal(isMongoDuplicateKey({ code: 1 }), false);
   });
 });

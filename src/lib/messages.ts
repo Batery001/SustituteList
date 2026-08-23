@@ -45,6 +45,7 @@ export const msg = {
       "Debes pagar la inscripción en tienda antes de registrar tu lista",
     duplicateRegistration:
       "Este Pop ID ya está inscrito en este torneo. Un jugador no puede inscribirse dos veces.",
+    registerFailed: "No se pudo completar la inscripción",
     invalidPopId: "El Pop ID no es válido.",
     cancelRegistrationFailed: "No se pudo cancelar la asistencia",
     removePlayerFailed: "No se pudo sacar al jugador del torneo",

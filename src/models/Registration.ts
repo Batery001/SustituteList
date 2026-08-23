@@ -44,7 +44,10 @@ const RegistrationSchema = new Schema(
 RegistrationSchema.index({ eventId: 1, popId: 1 }, { unique: true });
 RegistrationSchema.index(
   { eventId: 1, playerId: 1 },
-  { unique: true, sparse: true }
+  {
+    unique: true,
+    partialFilterExpression: { playerId: { $type: "objectId" } },
+  }
 );
 
 export type IRegistration = InferSchemaType<typeof RegistrationSchema> & {
