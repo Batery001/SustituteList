@@ -15,6 +15,7 @@ const RegistrationSchema = new Schema(
     },
     playerName: { type: String, required: true, trim: true },
     popId: { type: String, required: true, trim: true },
+    email: { type: String, trim: true, lowercase: true },
     birthDate: { type: Date, required: true },
     division: {
       type: String,

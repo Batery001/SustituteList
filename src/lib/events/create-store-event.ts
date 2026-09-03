@@ -8,6 +8,7 @@ import {
 import { syncStoreTimezone } from "@/lib/sync-store-timezone";
 import { Event } from "@/models/Event";
 import { Store } from "@/models/Store";
+import { normalizeRegulationMarks } from "@/lib/regulation";
 import type { CreateEventPayload } from "@/types/store-dashboard";
 
 export class CreateEventError extends Error {
@@ -32,6 +33,7 @@ export async function createStoreEvent(
     maxPlayers,
     price,
     clientTimeZone,
+    allowedRegulationMarks,
   } = input;
 
   if (!title?.trim()) {
@@ -106,6 +108,7 @@ export async function createStoreEvent(
       typeof maxPlayers === "number" && maxPlayers > 0
         ? Math.round(maxPlayers)
         : null,
+    allowedRegulationMarks: normalizeRegulationMarks(allowedRegulationMarks),
   });
 
   return event;

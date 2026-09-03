@@ -73,6 +73,7 @@ export async function GET(
       deadlinePassed,
       canSubmit,
       entryFeeCents,
+      allowedRegulationMarks: event.allowedRegulationMarks ?? [],
     },
     store: store
       ? {

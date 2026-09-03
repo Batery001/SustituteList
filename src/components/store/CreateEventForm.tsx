@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import {
+  DEFAULT_REGULATION_MARKS,
+  REGULATION_MARKS,
+  type RegulationMark,
+} from "@/lib/regulation";
 
 const TYPE_OPTIONS = [
   { value: "cup", label: "League Cup" },
@@ -19,6 +24,9 @@ export function CreateEventForm() {
   const [decklistDeadlineAt, setDecklistDeadlineAt] = useState("");
   const [maxPlayers, setMaxPlayers] = useState("");
   const [price, setPrice] = useState("");
+  const [marks, setMarks] = useState<RegulationMark[]>([
+    ...DEFAULT_REGULATION_MARKS,
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,6 +65,7 @@ export function CreateEventForm() {
         decklistDeadlineAt,
         maxPlayers: maxPlayers ? Number(maxPlayers) : undefined,
         price: price ? Number(price) : 0,
+        allowedRegulationMarks: marks,
         clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     });
@@ -170,6 +179,36 @@ export function CreateEventForm() {
             placeholder="10000"
           />
         </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-sm text-sky-200/80">Marcas de regulación</p>
+        <div className="flex flex-wrap gap-2">
+          {REGULATION_MARKS.map((mark) => {
+            const on = marks.includes(mark);
+            return (
+              <button
+                key={mark}
+                type="button"
+                onClick={() =>
+                  setMarks((prev) =>
+                    on ? prev.filter((m) => m !== mark) : [...prev, mark]
+                  )
+                }
+                className={`rounded-lg border px-3 py-1.5 text-sm ${
+                  on
+                    ? "border-sky-400/50 bg-sky-500/15 text-sky-100"
+                    : "border-sky-500/15 text-sky-100/45"
+                }`}
+              >
+                {mark}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-xs text-sky-100/45">
+          Las listas con cartas fuera de estas marcas no se podrán enviar.
+        </p>
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}

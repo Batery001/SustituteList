@@ -156,7 +156,9 @@ export async function POST(request: Request) {
     const birth = registration.birthDate;
     const resolvedName = registration.playerName;
 
-    const parsed = await parseAndEnrichPokemonDecklist(rawText);
+    const parsed = await parseAndEnrichPokemonDecklist(rawText, {
+      allowedRegulationMarks: event.allowedRegulationMarks,
+    });
     if (!parsed.isValid) {
       return NextResponse.json(
         {

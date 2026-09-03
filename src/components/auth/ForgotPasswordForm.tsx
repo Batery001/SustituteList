@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 
 type AccountType = "PLAYER" | "STORE";
-type Step = "verify" | "reset";
+type Step = "verify" | "sent" | "reset";
 
 export function ForgotPasswordForm() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("verify");
+  const searchParams = useSearchParams();
+  const tokenFromUrl = searchParams.get("token") ?? "";
+  const [step, setStep] = useState<Step>(tokenFromUrl ? "reset" : "verify");
   const [accountType, setAccountType] = useState<AccountType>("PLAYER");
   const [email, setEmail] = useState("");
   const [popId, setPopId] = useState("");
@@ -18,9 +20,16 @@ export function ForgotPasswordForm() {
   const [storeName, setStoreName] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [resetToken, setResetToken] = useState("");
+  const [resetToken, setResetToken] = useState(tokenFromUrl);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
+      setStep("reset");
+    }
+  }, [tokenFromUrl]);
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
@@ -38,11 +47,20 @@ export function ForgotPasswordForm() {
       body: JSON.stringify(payload),
     });
 
-    const data = (await res.json()) as { error?: string; resetToken?: string };
+    const data = (await res.json()) as {
+      error?: string;
+      resetToken?: string;
+      emailed?: boolean;
+    };
     setLoading(false);
 
     if (!res.ok) {
       setError(data.error ?? "No se pudo verificar la cuenta");
+      return;
+    }
+
+    if (data.emailed) {
+      setStep("sent");
       return;
     }
 
@@ -71,6 +89,24 @@ export function ForgotPasswordForm() {
 
     router.push("/auth/login?recovered=1");
     router.refresh();
+  }
+
+  if (step === "sent") {
+    return (
+      <div className="space-y-4">
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-950/30 p-4 text-sm text-emerald-100">
+          Te enviamos un correo a <strong>{email}</strong> con el enlace para
+          elegir una contraseña nueva. Revisa también spam.
+        </p>
+        <button
+          type="button"
+          onClick={() => setStep("verify")}
+          className="w-full text-sm text-sky-100/45 hover:text-sky-200"
+        >
+          ← Volver
+        </button>
+      </div>
+    );
   }
 
   if (step === "reset") {
@@ -131,7 +167,8 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleVerify} className="space-y-4">
       <p className="text-sm text-sky-100/55">
-        Verificamos tu identidad con los datos del registro. No enviamos correos.
+        Confirma tu identidad. Si hay correo configurado, te llega un enlace
+        para cambiar la contraseña.
       </p>
 
       <div className="grid grid-cols-2 gap-2">

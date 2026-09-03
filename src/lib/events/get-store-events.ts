@@ -5,6 +5,7 @@ import {
 } from "@/lib/events/store-event-utils";
 import { Event } from "@/models/Event";
 import { Registration } from "@/models/Registration";
+import { isEmailConfigured } from "@/lib/email";
 import type { StoreEventSummary } from "@/types/store-dashboard";
 import mongoose from "mongoose";
 
@@ -41,6 +42,8 @@ export async function getStoreEventsSummary(
     registrationCount: countMap.get(e._id.toString()) ?? 0,
     status: mapEventStatus(e.status),
     price: e.price ?? e.entryFeeCents ?? 0,
+    allowedRegulationMarks: e.allowedRegulationMarks ?? [],
+    emailConfigured: isEmailConfigured(),
   }));
 }
 
@@ -74,5 +77,7 @@ export async function getStoreEventForStore(
     registrationCount,
     status: mapEventStatus(event.status),
     price: event.price ?? event.entryFeeCents ?? 0,
+    allowedRegulationMarks: event.allowedRegulationMarks ?? [],
+    emailConfigured: isEmailConfigured(),
   };
 }

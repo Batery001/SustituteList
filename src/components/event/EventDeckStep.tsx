@@ -16,6 +16,7 @@ interface EventDeckStepProps {
   playerName: string;
   popId: string;
   deadlineLabel: string;
+  allowedRegulationMarks?: string[];
   onSubmitted: (deckEditToken: string) => void;
 }
 
@@ -25,6 +26,7 @@ export function EventDeckStep({
   playerName,
   popId,
   deadlineLabel,
+  allowedRegulationMarks = [],
   onSubmitted,
 }: EventDeckStepProps) {
   const [rawText, setRawText] = useState("");
@@ -53,7 +55,7 @@ export function EventDeckStep({
       const res = await fetch("/api/parse", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rawText }),
+        body: JSON.stringify({ rawText, allowedRegulationMarks }),
       });
       const data = (await res.json()) as PokemonDeckParseResult & {
         error?: string;

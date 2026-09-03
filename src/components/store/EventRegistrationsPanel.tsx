@@ -17,11 +17,15 @@ type RegistrationRow = {
   _id: string;
   playerName: string;
   popId: string;
+  email?: string | null;
   division: Division;
   paymentStatus: string;
   hasDecklist: boolean;
   deckEditToken?: string | null;
+  accessToken: string;
 };
+
+type RowFilter = "all" | "missing-list" | "pending-pay";
 
 type DivisionTab = Division | "all";
 
@@ -36,6 +40,8 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
   const [copied, setCopied] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [rowFilter, setRowFilter] = useState<RowFilter>("all");
+  const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [evRes, regRes] = await Promise.all([
@@ -142,6 +148,107 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
     }
   }
 
+  async function downloadExport(format: "csv" | "pdfs") {
+    setBusy(format);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/events/store/${eventId}/export?format=${format}`
+      );
+      if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
+        setError(data.error ?? "No se pudo exportar");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = format === "csv" ? "inscritos.csv" : "listas.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleEventOpen() {
+    if (!event) return;
+    const closing = event.status === "Active";
+    const ok = window.confirm(
+      closing
+        ? "¿Cerrar inscripciones y envío de listas de este torneo?"
+        : "¿Reabrir el torneo para inscripciones y listas?"
+    );
+    if (!ok) return;
+    setBusy("status");
+    setError(null);
+    try {
+      const res = await fetch(`/api/events/store/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: closing ? "close" : "reopen" }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo cambiar el estado");
+        return;
+      }
+      await load();
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function notify(kind: "missing-list" | "deadline", registrationId?: string) {
+    setBusy("notify");
+    setError(null);
+    try {
+      const res = await fetch(`/api/events/store/${eventId}/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, registrationId }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        sent?: number;
+        skipped?: number;
+      };
+      if (!res.ok) {
+        setError(data.error ?? "No se pudieron enviar los avisos");
+        return;
+      }
+      window.alert(
+        `Correos enviados: ${data.sent ?? 0}. Sin correo o ya tenían lista: ${data.skipped ?? 0}.`
+      );
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function playerUrl(r: RegistrationRow) {
+    if (!event) return "";
+    return `${window.location.origin}/e/${event.slug}/mi-inscripcion/${r.accessToken}`;
+  }
+
+  async function copyPlayerLink(r: RegistrationRow) {
+    await navigator.clipboard.writeText(playerUrl(r));
+  }
+
+  function whatsappPlayer(r: RegistrationRow) {
+    if (!event) return;
+    const text = r.hasDecklist
+      ? `Hola ${r.playerName}, tu inscripción a ${event.title} está lista. ${playerUrl(r)}`
+      : `Hola ${r.playerName}, te falta enviar la lista para ${event.title}. Entra aquí: ${playerUrl(r)}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
   async function markPaid(registrationId: string) {
     setMarkingId(registrationId);
     try {
@@ -156,7 +263,14 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
 
   const byDivision = (d: Division) =>
     registrations.filter((r) => r.division === d);
-  const visible = tab === "all" ? registrations : byDivision(tab);
+  const filtered = (tab === "all" ? registrations : byDivision(tab)).filter(
+    (r) => {
+      if (rowFilter === "missing-list") return !r.hasDecklist;
+      if (rowFilter === "pending-pay") return r.paymentStatus !== "paid";
+      return true;
+    }
+  );
+  const visible = filtered;
 
   const withDeck = registrations.filter((r) => r.hasDecklist).length;
   const pendingPay = registrations.filter(
@@ -170,7 +284,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
     return <p className="py-8 text-center text-sky-100/50">Cargando…</p>;
   }
 
-  if (error || !event) {
+  if (!event) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-red-400">{error ?? "Torneo no encontrado"}</p>
@@ -204,6 +318,9 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
             </p>
             <p className="mt-1 text-xs text-sky-100/45">
               Listas hasta: {formatEventDate(event.decklistDeadline)}
+              {event.allowedRegulationMarks?.length
+                ? ` · Regulación ${event.allowedRegulationMarks.join("/")}`
+                : ""}
             </p>
           </div>
           <span
@@ -244,12 +361,66 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
         >
           Ver como jugador
         </Link>
+        <Button
+          type="button"
+          className="text-sm"
+          disabled={busy === "csv"}
+          onClick={() => void downloadExport("csv")}
+        >
+          {busy === "csv" ? "…" : "Exportar CSV"}
+        </Button>
+        <Button
+          type="button"
+          className="text-sm"
+          disabled={busy === "pdfs"}
+          onClick={() => void downloadExport("pdfs")}
+        >
+          {busy === "pdfs" ? "…" : "ZIP de listas"}
+        </Button>
+        <Button
+          type="button"
+          className="text-sm"
+          disabled={busy === "status"}
+          onClick={() => void toggleEventOpen()}
+        >
+          {event.status === "Active" ? "Cerrar torneo" : "Reabrir torneo"}
+        </Button>
+        {event.emailConfigured ? (
+          <>
+            <button
+              type="button"
+              disabled={busy === "notify"}
+              onClick={() => void notify("missing-list")}
+              className="rounded-lg border border-amber-500/30 px-4 py-2 text-sm text-amber-200"
+            >
+              Avisar falta lista
+            </button>
+            <button
+              type="button"
+              disabled={busy === "notify"}
+              onClick={() => void notify("deadline")}
+              className="rounded-lg border border-sky-500/25 px-4 py-2 text-sm text-sky-200"
+            >
+              Recordar plazo
+            </button>
+          </>
+        ) : (
+          <p className="self-center text-xs text-sky-100/40">
+            Para correos: añade RESEND_API_KEY en Vercel.
+          </p>
+        )}
       </div>
 
       <p className="text-xs text-sky-100/45">
-        Comparte el link con tus jugadores. Ahí se inscriben, pagan (si aplica) y
-        suben su lista de 60 cartas en un solo lugar.
+        Comparte el link con tus jugadores. Ahí se inscriben, confirman asistencia
+        y suben su lista de 60 cartas en un solo lugar.
       </p>
+
+      {error && (
+        <p className="rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-200">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-1 border-b border-sky-500/15 pb-2">
         <button
@@ -279,6 +450,29 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["all", "Todos los filtros"],
+            ["missing-list", "Falta lista"],
+            ["pending-pay", "Pago pendiente"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setRowFilter(id)}
+            className={`rounded-md px-2 py-1 text-xs ${
+              rowFilter === id
+                ? "bg-amber-500/20 text-amber-100"
+                : "text-sky-100/45 hover:text-sky-100"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <section>
         {visible.length === 0 ? (
           <p className="text-sm text-sky-100/50">
@@ -297,6 +491,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                   <p className="font-medium text-sky-50">{r.playerName}</p>
                   <p className="text-xs text-sky-100/50">
                     Pop ID {r.popId} · {formatDivision(r.division)}
+                    {r.email ? ` · ${r.email}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -335,6 +530,30 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                     </>
                   ) : (
                     <span className="text-amber-300">Sin lista</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void copyPlayerLink(r)}
+                    className="rounded-md border border-sky-500/25 px-2 py-1 text-sky-200 hover:bg-sky-900/50"
+                  >
+                    Copiar link
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => whatsappPlayer(r)}
+                    className="rounded-md border border-emerald-500/25 px-2 py-1 text-emerald-200 hover:bg-emerald-950/40"
+                  >
+                    WhatsApp
+                  </button>
+                  {event.emailConfigured && r.email && !r.hasDecklist && (
+                    <button
+                      type="button"
+                      disabled={busy === "notify"}
+                      onClick={() => void notify("missing-list", r._id)}
+                      className="rounded-md border border-amber-500/30 px-2 py-1 text-amber-200"
+                    >
+                      Avisar
+                    </button>
                   )}
                   <button
                     type="button"

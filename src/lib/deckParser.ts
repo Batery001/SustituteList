@@ -9,6 +9,8 @@ export interface ParsedDeckCard {
   number?: string;
   lineRaw: string;
   category: DeckCardCategory;
+  /** Marca de regulación (G/H/I/J) si se resolvió. */
+  regulationMark?: string;
   /** true si la categoría vino de un encabezado PTCGL (Pokémon:/Trainer:/Energy:). */
   sectionAssigned?: boolean;
 }

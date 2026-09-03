@@ -12,6 +12,8 @@ export type StoreEventSummary = {
   registrationCount: number;
   status: EventStatus;
   price: number;
+  allowedRegulationMarks: string[];
+  emailConfigured: boolean;
 };
 
 export type StoreRegistrationRow = {
@@ -32,4 +34,5 @@ export type CreateEventPayload = {
   maxPlayers?: number;
   price?: number;
   clientTimeZone?: string;
+  allowedRegulationMarks?: string[];
 };

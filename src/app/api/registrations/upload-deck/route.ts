@@ -64,21 +64,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsed = await parseAndEnrichPokemonDecklist(rawText);
-    if (!parsed.isValid) {
-      return NextResponse.json(
-        {
-          error: msg.api.validationFailed,
-          validation: {
-            cardCount: parsed.cardCount,
-            errors: parsed.errors,
-            warnings: parsed.warnings,
-          },
-        },
-        { status: 422 }
-      );
-    }
-
     await connectDB();
 
     const registration = await Registration.findOne({
@@ -99,6 +84,23 @@ export async function POST(request: Request) {
 
     if (isDeadlinePassed(new Date(event.decklistDeadlineAt))) {
       return NextResponse.json({ error: msg.api.deadlinePassed }, { status: 403 });
+    }
+
+    const parsed = await parseAndEnrichPokemonDecklist(rawText, {
+      allowedRegulationMarks: event.allowedRegulationMarks,
+    });
+    if (!parsed.isValid) {
+      return NextResponse.json(
+        {
+          error: msg.api.validationFailed,
+          validation: {
+            cardCount: parsed.cardCount,
+            errors: parsed.errors,
+            warnings: parsed.warnings,
+          },
+        },
+        { status: 422 }
+      );
     }
 
     const cardsForDb = toStoredParsedCards(parsed.cards);

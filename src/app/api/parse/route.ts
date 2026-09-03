@@ -13,9 +13,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { rawText?: string };
+    const body = (await request.json()) as {
+      rawText?: string;
+      allowedRegulationMarks?: string[];
+    };
     const rawText = typeof body.rawText === "string" ? body.rawText : "";
-    const result = await parseAndEnrichPokemonDecklist(rawText);
+    const result = await parseAndEnrichPokemonDecklist(rawText, {
+      allowedRegulationMarks: body.allowedRegulationMarks,
+    });
     return NextResponse.json({
       cards: result.cards,
       errors: result.errors,

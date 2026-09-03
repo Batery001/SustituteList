@@ -27,6 +27,8 @@ const StoreSchema = new Schema(
       default: "integration",
     },
     onlinePaymentsEnabled: { type: Boolean, default: true },
+    emailVerifiedAt: { type: Date },
+    emailVerificationSentAt: { type: Date },
   },
   { timestamps: true }
 );

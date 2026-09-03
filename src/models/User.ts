@@ -21,6 +21,8 @@ const UserSchema = new Schema(
       default: "PLAYER",
       index: true,
     },
+    emailVerifiedAt: { type: Date },
+    emailVerificationSentAt: { type: Date },
   },
   { timestamps: true }
 );

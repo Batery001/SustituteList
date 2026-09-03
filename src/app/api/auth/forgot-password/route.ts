@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { getAppUrl } from "@/lib/app-url";
 import {
   PasswordResetError,
   verifyPlayerRecovery,
   verifyStoreRecovery,
 } from "@/lib/auth/password-reset";
+import { isEmailConfigured, sendPasswordResetEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -36,7 +38,18 @@ export async function POST(request: Request) {
             storeName: body.storeName ?? "",
           });
 
-    return NextResponse.json({ ok: true, resetToken });
+    if (isEmailConfigured()) {
+      const resetUrl = `${getAppUrl()}/auth/recuperar?token=${encodeURIComponent(resetToken)}`;
+      const mailed = await sendPasswordResetEmail({
+        to: (body.email ?? "").toLowerCase().trim(),
+        resetUrl,
+      });
+      if (mailed.ok) {
+        return NextResponse.json({ ok: true, emailed: true });
+      }
+    }
+
+    return NextResponse.json({ ok: true, emailed: false, resetToken });
   } catch (err) {
     if (err instanceof PasswordResetError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

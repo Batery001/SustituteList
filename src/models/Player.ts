@@ -7,6 +7,8 @@ const PlayerSchema = new Schema(
     playerName: { type: String, required: true, trim: true },
     popId: { type: String, required: true, unique: true, trim: true },
     birthDate: { type: Date, required: true },
+    emailVerifiedAt: { type: Date },
+    emailVerificationSentAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -8,6 +8,7 @@ type TcgdexCard = {
   category?: string;
   name?: string;
   localId?: string;
+  regulationMark?: string;
   set?: { id?: string };
 };
 
@@ -17,7 +18,12 @@ type TcgdexCardBrief = {
   localId: string;
 };
 
-const categoryCache = new Map<string, DeckCardCategory | null>();
+const categoryCache = new Map<string, CardLookup>();
+
+export type CardLookup = {
+  category: DeckCardCategory | null;
+  regulationMark: string | null;
+};
 
 function cacheKey(setCode: string, number: string, name: string): string {
   return `${setCode.toUpperCase()}|${number}|${name.trim().toLowerCase()}`;
@@ -92,32 +98,36 @@ function pickBestMatch(
 }
 
 /**
- * Resuelve la categoría de una carta usando TCGdex (gratuito, sin API key).
+ * Resuelve categoría y marca de regulación con TCGdex.
  */
-export async function lookupCardCategory(
+export async function lookupCardMeta(
   setCode: string,
   number: string,
   name: string
-): Promise<DeckCardCategory | null> {
+): Promise<CardLookup> {
   const key = cacheKey(setCode, number, name);
-  if (categoryCache.has(key)) return categoryCache.get(key) ?? null;
+  const cached = categoryCache.get(key);
+  if (cached) return cached;
 
   const tcgdexSetId = limitlessSetToTcgdex(setCode);
-  let resolved: DeckCardCategory | null = null;
+  let resolved: CardLookup = { category: null, regulationMark: null };
 
   if (tcgdexSetId) {
     for (const num of numberVariants(number)) {
       const direct = await fetchJson<TcgdexCard>(
         `${TCGDEX_BASE}/cards/${tcgdexSetId}-${num}`
       );
-      if (direct?.category) {
-        resolved = tcgdxCategoryToDeck(direct.category);
-        if (resolved) break;
+      if (direct?.category || direct?.regulationMark) {
+        resolved = {
+          category: tcgdxCategoryToDeck(direct.category),
+          regulationMark: direct.regulationMark?.trim().toUpperCase() || null,
+        };
+        if (resolved.category) break;
       }
     }
   }
 
-  if (!resolved) {
+  if (!resolved.category) {
     const searchUrl = `${TCGDEX_BASE}/cards?name=${encodeURIComponent(name.trim())}`;
     const results = await fetchJson<TcgdexCardBrief[]>(searchUrl);
     if (results?.length) {
@@ -132,13 +142,27 @@ export async function lookupCardCategory(
         const full = await fetchJson<TcgdexCard>(
           `${TCGDEX_BASE}/cards/${match.id}`
         );
-        resolved = tcgdxCategoryToDeck(full?.category);
+        resolved = {
+          category: tcgdxCategoryToDeck(full?.category) ?? resolved.category,
+          regulationMark:
+            full?.regulationMark?.trim().toUpperCase() ||
+            resolved.regulationMark,
+        };
       }
     }
   }
 
   categoryCache.set(key, resolved);
   return resolved;
+}
+
+export async function lookupCardCategory(
+  setCode: string,
+  number: string,
+  name: string
+): Promise<DeckCardCategory | null> {
+  const meta = await lookupCardMeta(setCode, number, name);
+  return meta.category;
 }
 
 /** Limpia caché (útil en tests). */

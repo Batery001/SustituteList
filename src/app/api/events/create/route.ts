@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       decklistDeadlineAt: body.decklistDeadlineAt,
       maxPlayers: body.maxPlayers,
       price: body.price,
-        clientTimeZone: body.clientTimeZone,
+      clientTimeZone: body.clientTimeZone,
+      allowedRegulationMarks: body.allowedRegulationMarks,
     };
 
     const event = await createStoreEvent(storeId, payload);

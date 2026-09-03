@@ -33,7 +33,7 @@ const EventSchema = new Schema(
     },
     allowedRegulationMarks: {
       type: [String],
-      default: ["G", "H"],
+      default: ["H", "I", "J"],
     },
     entryFeeCents: { type: Number, default: 0 },
     maxPlayers: { type: Number },

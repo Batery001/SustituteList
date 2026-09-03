@@ -46,6 +46,21 @@ export const msg = {
     duplicateRegistration:
       "Este Pop ID ya está inscrito en este torneo. Un jugador no puede inscribirse dos veces.",
     registerFailed: "No se pudo completar la inscripción",
+    eventFull: "Este torneo ya no tiene cupos",
+    accountExists:
+      "Ya tienes una cuenta con estos datos. Inicia sesión para inscribirte.",
+    emailRequired: "El correo es obligatorio para enviarte la confirmación",
+    invalidEmail: "El correo no es válido",
+    recoverFailed: "No encontramos esa inscripción. Revisa Pop ID y fecha.",
+    recoverNeedsAccount:
+      "Esta inscripción es de una cuenta. Inicia sesión para verla.",
+    eventCloseFailed: "No se pudo cerrar el torneo",
+    exportFailed: "No se pudo exportar",
+    notifyFailed: "No se pudieron enviar los avisos",
+    emailNotConfigured:
+      "Falta RESEND_API_KEY en Vercel. Añádela para enviar correos.",
+    notifyNone: "No hay jugadores con correo para avisar",
+    resetEmailSent: "Si los datos coinciden, te enviamos un correo",
     invalidPopId: "El Pop ID no es válido.",
     cancelRegistrationFailed: "No se pudo cancelar la asistencia",
     removePlayerFailed: "No se pudo sacar al jugador del torneo",

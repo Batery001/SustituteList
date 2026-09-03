@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { datesOnSameDay } from "@/lib/dates";
 import { dbConnect } from "@/lib/dbConnect";
 import { Player } from "@/models/Player";
 import { Store } from "@/models/Store";
@@ -45,13 +46,7 @@ function decodeTokenPayload(
 }
 
 function datesMatch(stored: Date, input: string): boolean {
-  const s = new Date(stored);
-  const i = new Date(`${input}T12:00:00`);
-  return (
-    s.getFullYear() === i.getFullYear() &&
-    s.getMonth() === i.getMonth() &&
-    s.getDate() === i.getDate()
-  );
+  return datesOnSameDay(stored, input);
 }
 
 /** Token firmado: base64url(payload).hmac — soporta emails con puntos. */

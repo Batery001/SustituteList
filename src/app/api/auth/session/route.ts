@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { isEmailVerified } from "@/lib/auth/email-verification";
 import { getAdminStoreId } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import { getPlayerId } from "@/lib/player-auth";
@@ -17,17 +18,17 @@ export async function GET() {
 
   await connectDB();
 
-  let store: { name: string } | null = null;
-  let player: { playerName: string } | null = null;
+  let store: { name: string; email?: string } | null = null;
+  let player: { playerName: string; email?: string } | null = null;
 
   if (storeId) {
-    const doc = await Store.findById(storeId).lean();
-    if (doc) store = { name: doc.name };
+    const doc = await Store.findById(storeId).select("name email").lean();
+    if (doc) store = { name: doc.name, email: doc.email };
   }
 
   if (playerId) {
-    const doc = await Player.findById(playerId).lean();
-    if (doc) player = { playerName: doc.playerName };
+    const doc = await Player.findById(playerId).select("playerName email").lean();
+    if (doc) player = { playerName: doc.playerName, email: doc.email };
   }
 
   const user = nextAuthSession?.user
@@ -41,6 +42,12 @@ export async function GET() {
       }
     : null;
 
+  let emailVerified: boolean | null = null;
+  const email = user?.email ?? player?.email ?? store?.email;
+  if (email) {
+    emailVerified = await isEmailVerified(email);
+  }
+
   if (!store && user && (user.role === "STORE" || user.role === "ADMIN")) {
     store = { name: user.name ?? "Tienda" };
   }
@@ -49,5 +56,5 @@ export async function GET() {
     player = { playerName: user.name ?? "Jugador" };
   }
 
-  return NextResponse.json({ store, player, user });
+  return NextResponse.json({ store, player, user, emailVerified });
 }

@@ -17,6 +17,9 @@ import { Player } from "@/models/Player";
 import { Registration } from "@/models/Registration";
 import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Store } from "@/models/Store";
+import { User } from "@/models/User";
+import { isValidEmail } from "@/lib/app-url";
+import { notifyNewRegistration } from "@/lib/notify-registration";
 import type { Types } from "mongoose";
 
 async function resumeRegistrationResponse(
@@ -107,15 +110,32 @@ export async function GET(request: Request) {
     submissions.map((s) => [s._id.toString(), s])
   );
 
+  const playerIds = registrations
+    .map((r) => r.playerId)
+    .filter((id): id is NonNullable<typeof id> => id != null);
+  const players =
+    playerIds.length > 0
+      ? await Player.find({ _id: { $in: playerIds } })
+          .select("email")
+          .lean()
+      : [];
+  const emailByPlayer = new Map(
+    players.map((p) => [p._id.toString(), p.email])
+  );
+
   return NextResponse.json({
     registrations: registrations.map((r) => {
       const sub = r.decklistSubmissionId
         ? subMap.get(r.decklistSubmissionId.toString())
         : null;
+      const email =
+        r.email ||
+        (r.playerId ? emailByPlayer.get(r.playerId.toString()) : undefined);
       return {
         _id: r._id.toString(),
         playerName: r.playerName,
         popId: r.popId,
+        email: email ?? null,
         division: r.division,
         paymentStatus: r.paymentStatus,
         paidAt: r.paidAt,
@@ -135,6 +155,7 @@ export async function POST(request: Request) {
       playerName?: string;
       popId?: string;
       birthDate?: string;
+      email?: string;
     };
 
     const { eventSlug } = body;
@@ -163,6 +184,8 @@ export async function POST(request: Request) {
     let playerName = body.playerName?.trim();
     let rawPopId = body.popId?.trim();
     let birth: Date;
+    let guestEmail: string | undefined;
+    let playerEmail: string | undefined;
 
     if (playerId) {
       const player = await Player.findById(playerId);
@@ -172,6 +195,7 @@ export async function POST(request: Request) {
       playerName = player.playerName;
       rawPopId = player.popId;
       birth = player.birthDate;
+      playerEmail = player.email;
     } else {
       if (!playerName || !rawPopId || !body.birthDate) {
         return NextResponse.json(
@@ -179,9 +203,35 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+      const email = body.email?.trim().toLowerCase() ?? "";
+      if (!email) {
+        return NextResponse.json({ error: msg.api.emailRequired }, { status: 400 });
+      }
+      if (!isValidEmail(email)) {
+        return NextResponse.json({ error: msg.api.invalidEmail }, { status: 400 });
+      }
+      guestEmail = email;
       birth = new Date(body.birthDate);
       if (Number.isNaN(birth.getTime())) {
         return NextResponse.json({ error: msg.api.invalidBirthDate }, { status: 400 });
+      }
+
+      const popForCheck = normalizePopId(rawPopId);
+      const [byEmailPlayer, byEmailUser, byPopPlayer] = await Promise.all([
+        Player.findOne({ email }),
+        User.findOne({ email }),
+        Player.find({ popId: { $exists: true, $nin: [null, ""] } }).select(
+          "popId email"
+        ),
+      ]);
+      const popTaken = byPopPlayer.some(
+        (p) => normalizePopId(p.popId) === popForCheck
+      );
+      if (byEmailPlayer || byEmailUser || popTaken) {
+        return NextResponse.json(
+          { error: msg.api.accountExists, code: "ACCOUNT_EXISTS" },
+          { status: 409 }
+        );
       }
     }
 
@@ -240,6 +290,13 @@ export async function POST(request: Request) {
       return resumeRegistrationResponse(existing, event._id);
     }
 
+    if (event.maxPlayers && event.maxPlayers > 0) {
+      const taken = await Registration.countDocuments({ eventId: event._id });
+      if (taken >= event.maxPlayers) {
+        return NextResponse.json({ error: msg.api.eventFull }, { status: 403 });
+      }
+    }
+
     const accessToken = randomBytes(24).toString("hex");
     const division = getDivision(birth!);
 
@@ -254,6 +311,9 @@ export async function POST(request: Request) {
         ...(playerId ? { playerId } : {}),
         playerName: playerName!,
         popId,
+        ...(guestEmail || playerEmail
+          ? { email: guestEmail ?? playerEmail }
+          : {}),
         birthDate: birth!,
         division,
         paymentStatus: isFree ? "paid" : "pending",
@@ -261,8 +321,24 @@ export async function POST(request: Request) {
         accessToken,
       });
 
+      try {
+        await notifyNewRegistration({
+          email: guestEmail ?? playerEmail,
+          playerId: playerId ?? null,
+          playerName: registration.playerName,
+          eventName: event.name,
+          storeName: store?.name ?? "Tienda",
+          accessToken: registration.accessToken,
+          eventSlug,
+          hasAccount: Boolean(playerId),
+        });
+      } catch (mailErr) {
+        console.error("Registration email error:", mailErr);
+      }
+
       return NextResponse.json(
         {
+          emailSent: Boolean(guestEmail || playerEmail),
           registration: {
             id: registration._id.toString(),
             accessToken: registration.accessToken,

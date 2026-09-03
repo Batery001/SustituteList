@@ -121,7 +121,9 @@ export async function PUT(
       return NextResponse.json({ error: msg.api.deadlinePassed }, { status: 403 });
     }
 
-    const parsed = await parseAndEnrichPokemonDecklist(rawText);
+    const parsed = await parseAndEnrichPokemonDecklist(rawText, {
+      allowedRegulationMarks: event.allowedRegulationMarks,
+    });
     if (!parsed.isValid) {
       return NextResponse.json(
         {

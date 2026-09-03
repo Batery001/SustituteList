@@ -19,6 +19,7 @@ interface EventRegistrationFlowProps {
   deadlineLabel: string;
   entryFeeCents: number;
   storeName: string;
+  allowedRegulationMarks?: string[];
 }
 
 type RegistrationState = {
@@ -59,6 +60,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     deadlineLabel,
     entryFeeCents,
     storeName,
+    allowedRegulationMarks = [],
   } = props;
 
   const searchParams = useSearchParams();
@@ -84,6 +86,8 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
   const [guestName, setGuestName] = useState("");
   const [guestPopId, setGuestPopId] = useState("");
   const [guestBirth, setGuestBirth] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [recoverMode, setRecoverMode] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -186,7 +190,13 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
 
     const body = player
       ? { eventSlug }
-      : { eventSlug, playerName: guestName, popId: guestPopId, birthDate: guestBirth };
+      : {
+          eventSlug,
+          playerName: guestName,
+          popId: guestPopId,
+          birthDate: guestBirth,
+          email: guestEmail,
+        };
 
     try {
       const res = await fetch("/api/registrations", {
@@ -197,6 +207,12 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.code === "ACCOUNT_EXISTS") {
+          setError(
+            `${data.error ?? "Ya tienes cuenta."} Entra con tu correo.`
+          );
+          return;
+        }
         setError(data.error ?? "No se pudo inscribir");
         return;
       }
@@ -210,6 +226,41 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
         playerName:
           data.registration.playerName ?? player?.playerName ?? guestName,
         popId: data.registration.popId ?? player?.popId ?? guestPopId,
+      });
+    } catch {
+      setError("Error de red. Intenta de nuevo.");
+    } finally {
+      setRegistering(false);
+    }
+  }
+
+  async function handleRecover(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setRegistering(true);
+    try {
+      const res = await fetch("/api/registrations/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventSlug,
+          popId: guestPopId,
+          birthDate: guestBirth,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "No se pudo recuperar la inscripción");
+        return;
+      }
+      const token = data.registration.accessToken as string;
+      saveEventRegistrationToken(eventSlug, token);
+      setRegistration({
+        accessToken: token,
+        paymentStatus: data.registration.paymentStatus,
+        deckEditToken: data.deckEditToken ?? null,
+        playerName: data.registration.playerName,
+        popId: data.registration.popId,
       });
     } catch {
       setError("Error de red. Intenta de nuevo.");
@@ -310,14 +361,31 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             </div>
           ) : guestMode ? (
             <div className="mt-4 space-y-3">
-              <input
-                type="text"
-                placeholder="Nombre completo"
-                required
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                className="sub-input w-full px-3 py-2 text-sm"
-              />
+              {recoverMode ? (
+                <p className="text-xs text-sky-100/55">
+                  Usa el mismo Pop ID y fecha de nacimiento de cuando te
+                  inscribiste.
+                </p>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Nombre completo"
+                    required
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    className="sub-input w-full px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Correo (te llega la confirmación)"
+                    required
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    className="sub-input w-full px-3 py-2 text-sm"
+                  />
+                </>
+              )}
               <input
                 type="text"
                 placeholder="Pop ID (uno por persona)"
@@ -326,10 +394,6 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
                 onChange={(e) => setGuestPopId(e.target.value)}
                 className="sub-input w-full px-3 py-2 text-sm"
               />
-              <p className="text-xs text-sky-100/45">
-                Si ya te inscribiste sin cuenta, usa el mismo Pop ID para volver
-                a tu lista o cancelar.
-              </p>
               <input
                 type="date"
                 required
@@ -337,6 +401,18 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
                 onChange={(e) => setGuestBirth(e.target.value)}
                 className="sub-input w-full px-3 py-2 text-sm"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setRecoverMode((v) => !v);
+                  setError(null);
+                }}
+                className="text-xs text-sky-100/45 underline"
+              >
+                {recoverMode
+                  ? "Quiero inscribirme"
+                  : "Ya me inscribí sin cuenta"}
+              </button>
             </div>
           ) : (
             <div className="mt-4 space-y-3 text-sm">
@@ -368,7 +444,10 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           )}
 
           {(player || guestMode) && (
-            <form onSubmit={handleRegister} className="mt-4">
+            <form
+              onSubmit={recoverMode ? handleRecover : handleRegister}
+              className="mt-4"
+            >
               {error && (
                 <p
                   className={`mb-3 rounded-lg border p-3 text-sm ${
@@ -378,10 +457,26 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
                   }`}
                 >
                   {error}
+                  {error.includes("Inicia sesión") ||
+                  error.includes("cuenta") ? (
+                    <>
+                      {" "}
+                      <Link
+                        href={`/auth/login?callbackUrl=${encodeURIComponent(`/e/${eventSlug}`)}`}
+                        className="underline"
+                      >
+                        Ir al login
+                      </Link>
+                    </>
+                  ) : null}
                 </p>
               )}
               <Button type="submit" disabled={registering} className="w-full">
-                {registering ? "Inscribiendo…" : "Confirmar inscripción"}
+                {registering
+                  ? "…"
+                  : recoverMode
+                    ? "Recuperar inscripción"
+                    : "Confirmar inscripción"}
               </Button>
             </form>
           )}
@@ -408,6 +503,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             playerName={displayName}
             popId={displayPopId}
             deadlineLabel={deadlineLabel}
+            allowedRegulationMarks={allowedRegulationMarks}
             onSubmitted={(deckEditToken) => {
               setRegistration((prev) =>
                 prev ? { ...prev, deckEditToken } : prev
