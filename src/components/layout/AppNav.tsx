@@ -63,9 +63,8 @@ export function AppNav({ area }: { area: Area }) {
               };
               if (!res.ok || payload.configured === false) {
                 setVerifyMsg(
-                  data.store
-                    ? "Falta RESEND_API_KEY en Vercel para enviar el correo."
-                    : "Aún no pudimos enviar el correo. Pulsa Reenviar o revisa spam."
+                  payload.error ??
+                    "Aún no pudimos enviar el correo. Pulsa Reenviar o revisa spam."
                 );
               }
             })
@@ -91,11 +90,7 @@ export function AppNav({ area }: { area: Area }) {
         error?: string;
       };
       if (data.configured === false) {
-        setVerifyMsg(
-          session?.store
-            ? "Falta RESEND_API_KEY en Vercel para enviar correos."
-            : (data.error ?? "No se pudo enviar el correo")
-        );
+        setVerifyMsg(data.error ?? "No se pudo enviar el correo");
         return;
       }
       if (!res.ok) {

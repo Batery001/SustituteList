@@ -1,4 +1,4 @@
-type SendResult = { ok: boolean; skipped?: boolean };
+type SendResult = { ok: boolean; skipped?: boolean; error?: string };
 
 function fromAddress(): string {
   return (
@@ -9,6 +9,20 @@ function fromAddress(): string {
 
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY?.trim());
+}
+
+function friendlyResendError(status: number, body: string): string {
+  let message = "";
+  try {
+    const parsed = JSON.parse(body) as { message?: string };
+    message = parsed.message ?? "";
+  } catch {
+    message = body;
+  }
+  if (status === 403 && /verify a domain|own email address/i.test(message)) {
+    return "Resend en prueba solo manda al correo con el que abriste la cuenta. Para jugadores y otras tiendas, verifica un dominio en resend.com/domains y pon EMAIL_FROM con una dirección de ese dominio.";
+  }
+  return message.trim() || "No se pudo enviar el correo";
 }
 
 export async function sendEmail(input: {
@@ -41,12 +55,12 @@ export async function sendEmail(input: {
     if (!res.ok) {
       const body = await res.text();
       console.error("Resend error:", res.status, body);
-      return { ok: false };
+      return { ok: false, error: friendlyResendError(res.status, body) };
     }
     return { ok: true };
   } catch (err) {
     console.error("Email send error:", err);
-    return { ok: false };
+    return { ok: false, error: "No se pudo enviar el correo" };
   }
 }
 

@@ -52,8 +52,11 @@ export async function POST() {
     }
     if (!result.ok && !result.alreadyVerified) {
       return NextResponse.json(
-        { ...result, error: "No se pudo enviar el correo de verificación" },
-        { status: 502 }
+        {
+          ...result,
+          error: result.error ?? "No se pudo enviar el correo de verificación",
+        },
+        { status: 400 }
       );
     }
     return NextResponse.json(result);

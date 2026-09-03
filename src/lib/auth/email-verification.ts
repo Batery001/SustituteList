@@ -157,6 +157,7 @@ export async function sendVerificationEmailTo(
   skipped?: boolean;
   alreadyVerified?: boolean;
   configured: boolean;
+  error?: string;
 }> {
   const normalized = email.toLowerCase().trim();
   const configured = isEmailConfigured();
@@ -186,7 +187,14 @@ export async function sendVerificationEmailTo(
     name,
     verifyUrl,
   });
-  if (!mailed.ok && !mailed.skipped) return { ok: false, configured };
+  if (!mailed.ok && !mailed.skipped) {
+    return { ok: false, configured, error: mailed.error };
+  }
   if (mailed.ok) await stampSent(normalized);
-  return { ok: mailed.ok, skipped: mailed.skipped, configured };
+  return {
+    ok: mailed.ok,
+    skipped: mailed.skipped,
+    configured,
+    error: mailed.error,
+  };
 }
