@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { getAppUrl } from "@/lib/app-url";
 import { dbConnect } from "@/lib/dbConnect";
-import { sendEmailVerificationEmail } from "@/lib/email";
+import { isEmailConfigured, sendEmailVerificationEmail } from "@/lib/email";
 import { Player } from "@/models/Player";
 import { Store } from "@/models/Store";
 import { User } from "@/models/User";
@@ -152,19 +152,29 @@ async function stampSent(email: string) {
 export async function sendVerificationEmailTo(
   email: string,
   options?: { force?: boolean; name?: string }
-): Promise<{ ok: boolean; skipped?: boolean; alreadyVerified?: boolean }> {
+): Promise<{
+  ok: boolean;
+  skipped?: boolean;
+  alreadyVerified?: boolean;
+  configured: boolean;
+}> {
   const normalized = email.toLowerCase().trim();
-  if (!normalized) return { ok: false };
+  const configured = isEmailConfigured();
+  if (!normalized) return { ok: false, configured };
 
   await dbConnect();
   if (await isEmailVerified(normalized)) {
-    return { ok: true, alreadyVerified: true };
+    return { ok: true, alreadyVerified: true, configured };
+  }
+
+  if (!configured) {
+    return { ok: false, skipped: true, configured: false };
   }
 
   if (!options?.force) {
     const last = await lastSentAt(normalized);
     if (last && Date.now() - last.getTime() < RESEND_COOLDOWN_MS) {
-      return { ok: true, skipped: true };
+      return { ok: true, skipped: true, configured };
     }
   }
 
@@ -176,7 +186,7 @@ export async function sendVerificationEmailTo(
     name,
     verifyUrl,
   });
-  if (!mailed.ok && !mailed.skipped) return { ok: false };
+  if (!mailed.ok && !mailed.skipped) return { ok: false, configured };
   if (mailed.ok) await stampSent(normalized);
-  return { ok: mailed.ok, skipped: mailed.skipped };
+  return { ok: mailed.ok, skipped: mailed.skipped, configured };
 }

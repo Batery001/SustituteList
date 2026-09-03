@@ -14,6 +14,7 @@ import { Player } from "@/models/Player";
 import { Store } from "@/models/Store";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 async function sessionEmail(): Promise<string | null> {
   const session = await auth();
@@ -35,22 +36,26 @@ async function sessionEmail(): Promise<string | null> {
   return null;
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const email = await sessionEmail();
     if (!email) {
       return NextResponse.json({ error: msg.api.unauthorized }, { status: 401 });
     }
 
-    let force = true;
-    try {
-      const body = (await request.json()) as { auto?: boolean };
-      if (body.auto) force = false;
-    } catch {
-      // sin cuerpo: reenvío manual
+    const result = await sendVerificationEmailTo(email, { force: true });
+    if (!result.configured) {
+      return NextResponse.json(
+        { ...result, error: msg.api.emailNotConfigured },
+        { status: 503 }
+      );
     }
-
-    const result = await sendVerificationEmailTo(email, { force });
+    if (!result.ok && !result.alreadyVerified) {
+      return NextResponse.json(
+        { ...result, error: "No se pudo enviar el correo de verificación" },
+        { status: 502 }
+      );
+    }
     return NextResponse.json(result);
   } catch (err) {
     console.error("Verify email send error:", err);

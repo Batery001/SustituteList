@@ -54,8 +54,22 @@ export function AppNav({ area }: { area: Area }) {
           void fetch("/api/auth/verify-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ auto: true }),
-          });
+            body: JSON.stringify({}),
+          })
+            .then(async (res) => {
+              const payload = (await res.json()) as {
+                configured?: boolean;
+                error?: string;
+              };
+              if (!res.ok || payload.configured === false) {
+                setVerifyMsg(
+                  data.store
+                    ? "Falta RESEND_API_KEY en Vercel para enviar el correo."
+                    : "Aún no pudimos enviar el correo. Pulsa Reenviar o revisa spam."
+                );
+              }
+            })
+            .catch(() => {});
         }
       })
       .catch(() => setSession({ store: null, player: null }));
@@ -68,13 +82,22 @@ export function AppNav({ area }: { area: Area }) {
       const res = await fetch("/api/auth/verify-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ auto: false }),
+        body: JSON.stringify({}),
       });
       const data = (await res.json()) as {
         skipped?: boolean;
         alreadyVerified?: boolean;
+        configured?: boolean;
         error?: string;
       };
+      if (data.configured === false) {
+        setVerifyMsg(
+          session?.store
+            ? "Falta RESEND_API_KEY en Vercel para enviar correos."
+            : (data.error ?? "No se pudo enviar el correo")
+        );
+        return;
+      }
       if (!res.ok) {
         setVerifyMsg(data.error ?? "No se pudo enviar el correo");
         return;
