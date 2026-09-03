@@ -406,7 +406,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
           </>
         ) : (
           <p className="self-center text-xs text-sky-100/40">
-            Para correos: añade RESEND_API_KEY en Vercel.
+            Para correos: SMTP de Gmail o RESEND_API_KEY en Vercel.
           </p>
         )}
       </div>

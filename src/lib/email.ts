@@ -1,14 +1,34 @@
+import nodemailer from "nodemailer";
+
 type SendResult = { ok: boolean; skipped?: boolean; error?: string };
 
+function smtpSettings() {
+  const host = process.env.SMTP_HOST?.trim();
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  if (!host || !user || !pass) return null;
+  const port = Number(process.env.SMTP_PORT?.trim() || "587");
+  return {
+    host,
+    port: Number.isFinite(port) ? port : 587,
+    user,
+    pass,
+    secure: port === 465,
+  };
+}
+
 function fromAddress(): string {
-  return (
-    process.env.EMAIL_FROM?.trim() ||
-    "Substitute List <onboarding@resend.dev>"
-  );
+  const configured = process.env.EMAIL_FROM?.trim();
+  if (configured && !configured.includes("onboarding@resend.dev")) {
+    return configured;
+  }
+  const smtpUser = smtpSettings()?.user;
+  if (smtpUser) return `Substitute List <${smtpUser}>`;
+  return configured || "Substitute List <onboarding@resend.dev>";
 }
 
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY?.trim());
+  return Boolean(smtpSettings() || process.env.RESEND_API_KEY?.trim());
 }
 
 function friendlyResendError(status: number, body: string): string {
@@ -20,12 +40,46 @@ function friendlyResendError(status: number, body: string): string {
     message = body;
   }
   if (status === 403 && /verify a domain|own email address/i.test(message)) {
-    return "Resend en prueba solo manda al correo con el que abriste la cuenta. Para jugadores y otras tiendas, verifica un dominio en resend.com/domains y pon EMAIL_FROM con una dirección de ese dominio.";
+    return "Resend en prueba solo manda al correo de tu cuenta Resend. Sin dominio, configura SMTP de Gmail (SMTP_HOST, SMTP_USER y SMTP_PASS) en Vercel.";
   }
   return message.trim() || "No se pudo enviar el correo";
 }
 
-export async function sendEmail(input: {
+async function sendWithSmtp(input: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<SendResult> {
+  const smtp = smtpSettings();
+  if (!smtp) return { ok: false, skipped: true };
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.secure,
+      auth: { user: smtp.user, pass: smtp.pass },
+    });
+    await transporter.sendMail({
+      from: fromAddress(),
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("SMTP send error:", err);
+    return {
+      ok: false,
+      error:
+        "No se pudo enviar por Gmail. Revisa SMTP_USER y la contraseña de aplicación en Vercel.",
+    };
+  }
+}
+
+async function sendWithResend(input: {
   to: string;
   subject: string;
   text: string;
@@ -33,7 +87,6 @@ export async function sendEmail(input: {
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
-    console.warn("Email omitido: falta RESEND_API_KEY");
     return { ok: false, skipped: true };
   }
 
@@ -62,6 +115,22 @@ export async function sendEmail(input: {
     console.error("Email send error:", err);
     return { ok: false, error: "No se pudo enviar el correo" };
   }
+}
+
+export async function sendEmail(input: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+}): Promise<SendResult> {
+  if (smtpSettings()) {
+    return sendWithSmtp(input);
+  }
+  if (process.env.RESEND_API_KEY?.trim()) {
+    return sendWithResend(input);
+  }
+  console.warn("Email omitido: falta SMTP o RESEND_API_KEY");
+  return { ok: false, skipped: true };
 }
 
 function escapeHtml(value: string): string {

@@ -58,7 +58,7 @@ export const msg = {
     exportFailed: "No se pudo exportar",
     notifyFailed: "No se pudieron enviar los avisos",
     emailNotConfigured:
-      "Falta RESEND_API_KEY en Vercel. Añádela para enviar correos.",
+      "Falta configurar correos en Vercel: SMTP de Gmail (sin dominio) o RESEND_API_KEY.",
     notifyNone: "No hay jugadores con correo para avisar",
     resetEmailSent: "Si los datos coinciden, te enviamos un correo",
     invalidPopId: "El Pop ID no es válido.",
