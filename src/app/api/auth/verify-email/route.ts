@@ -45,19 +45,16 @@ export async function POST() {
 
     const result = await sendVerificationEmailTo(email, { force: true });
     if (!result.configured) {
-      return NextResponse.json(
-        { ...result, error: msg.api.emailNotConfigured },
-        { status: 503 }
-      );
+      return NextResponse.json({
+        ...result,
+        error: msg.api.emailNotConfigured,
+      });
     }
     if (!result.ok && !result.alreadyVerified) {
-      return NextResponse.json(
-        {
-          ...result,
-          error: result.error ?? "No se pudo enviar el correo de verificación",
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        ...result,
+        error: result.error ?? "No se pudo enviar el correo de verificación",
+      });
     }
     return NextResponse.json(result);
   } catch (err) {

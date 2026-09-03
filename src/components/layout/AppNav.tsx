@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { routes } from "@/lib/routes";
 
 type Area = "public" | "player" | "store";
@@ -42,34 +42,12 @@ export function AppNav({ area }: { area: Area }) {
   const [session, setSession] = useState<Session | null>(null);
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
   const [sendingVerify, setSendingVerify] = useState(false);
-  const autoSent = useRef(false);
 
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((data: Session) => {
         setSession(data);
-        if (data.emailVerified === false && !autoSent.current) {
-          autoSent.current = true;
-          void fetch("/api/auth/verify-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({}),
-          })
-            .then(async (res) => {
-              const payload = (await res.json()) as {
-                configured?: boolean;
-                error?: string;
-              };
-              if (!res.ok || payload.configured === false) {
-                setVerifyMsg(
-                  payload.error ??
-                    "Aún no pudimos enviar el correo. Pulsa Reenviar o revisa spam."
-                );
-              }
-            })
-            .catch(() => {});
-        }
       })
       .catch(() => setSession({ store: null, player: null }));
   }, [pathname]);
@@ -84,21 +62,22 @@ export function AppNav({ area }: { area: Area }) {
         body: JSON.stringify({}),
       });
       const data = (await res.json()) as {
+        ok?: boolean;
         skipped?: boolean;
         alreadyVerified?: boolean;
         configured?: boolean;
         error?: string;
       };
-      if (data.configured === false) {
+      if (data.alreadyVerified) {
+        setVerifyMsg("Este correo ya está verificado.");
+        return;
+      }
+      if (data.configured === false || data.ok === false) {
         setVerifyMsg(data.error ?? "No se pudo enviar el correo");
         return;
       }
       if (!res.ok) {
         setVerifyMsg(data.error ?? "No se pudo enviar el correo");
-        return;
-      }
-      if (data.alreadyVerified) {
-        setVerifyMsg("Este correo ya está verificado.");
         return;
       }
       setVerifyMsg(
@@ -118,9 +97,8 @@ export function AppNav({ area }: { area: Area }) {
       <div className="mb-3 rounded-lg border border-amber-400/40 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
         <p className="font-medium">Confirma tu correo</p>
         <p className="mt-1 text-amber-100/80">
-          Tu cuenta sigue activa y puedes usarla igual que ahora. Te mandamos un
-          enlace para verificar que el correo es tuyo. Si no llega, revisa spam
-          o reenvíalo.
+          Tu cuenta sigue activa. Si te llega un correo de confirmación, pulsa
+          el enlace. Si no llega, usa Reenviar.
         </p>
         <button
           type="button"
