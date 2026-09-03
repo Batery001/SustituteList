@@ -50,6 +50,14 @@ export async function sendEmail(input: {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 function wrapHtml(title: string, body: string): string {
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0b1220;color:#e2e8f0;padding:24px">
   <div style="max-width:520px;margin:auto;background:#111827;border:1px solid #1e3a5f;border-radius:12px;padding:24px">
@@ -60,7 +68,8 @@ function wrapHtml(title: string, body: string): string {
 }
 
 function btn(href: string, label: string): string {
-  return `<p><a href="${href}" style="display:inline-block;background:#0284c7;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">${label}</a></p>`;
+  const safeHref = escapeHtml(href);
+  return `<p><a ses:no-track href="${safeHref}" style="display:inline-block;background:#0284c7;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px">${escapeHtml(label)}</a></p><p style="font-size:12px;color:#94a3b8;word-break:break-all">${safeHref}</p>`;
 }
 
 export async function sendEmailVerificationEmail(input: {
