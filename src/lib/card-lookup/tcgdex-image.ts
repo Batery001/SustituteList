@@ -55,9 +55,37 @@ export function enrichCardImage<T extends ImageSource>(
   return card;
 }
 
-/** Variantes de URL para probar si `/low.webp` no existe. */
+/** Variantes de URL para probar si la primera no carga. */
 export function tcgdxImageVariants(baseUrl?: string): string[] {
   if (!baseUrl?.trim()) return [];
-  const base = baseUrl.replace(/\/low\.webp$|\/high\.webp$|\.webp$/i, "");
-  return [`${base}/low.webp`, `${base}/high.webp`, base];
+  const url = baseUrl.trim();
+
+  // Pokémon TCG API / Scrydex CDN
+  if (
+    url.includes("images.pokemontcg.io") ||
+    url.includes("images.scrydex.com")
+  ) {
+    if (url.includes("_hires")) {
+      return [url, url.replace("_hires", "")];
+    }
+    if (/\/small\/?$/i.test(url) || url.endsWith("/small")) {
+      return [url, url.replace(/\/small\/?$/i, "/large")];
+    }
+    if (/\/large\/?$/i.test(url) || url.endsWith("/large")) {
+      return [url, url.replace(/\/large\/?$/i, "/small")];
+    }
+    if (/\.png$/i.test(url) && !url.includes("_hires")) {
+      return [url, url.replace(/\.png$/i, "_hires.png")];
+    }
+    return [url];
+  }
+
+  // TCGdex assets
+  if (url.includes("assets.tcgdex.net") || /\.webp/i.test(url)) {
+    const base = url.replace(/\/low\.webp$|\/high\.webp$|\.webp$/i, "");
+    return [`${base}/low.webp`, `${base}/high.webp`, base];
+  }
+
+  return [url];
 }
+

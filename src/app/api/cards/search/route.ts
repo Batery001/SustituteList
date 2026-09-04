@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { DeckFormat, DeckTypeFilter } from "@/lib/deck-builder";
-import { searchTcgdexCards } from "@/lib/card-lookup/tcgdex-search";
+import { searchPokemontcgCards } from "@/lib/card-lookup/pokemontcg-search";
 import { msg } from "@/lib/messages";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const cards = await searchTcgdexCards({
+    const cards = await searchPokemontcgCards({
       query: q,
       type: parseType(searchParams.get("type")),
       format: parseFormat(searchParams.get("format")),
