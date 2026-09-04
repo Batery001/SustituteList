@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
+import { toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import {
   decklistPdfFilename,
@@ -14,7 +15,7 @@ import { PlayerDeck } from "@/models/PlayerDeck";
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -43,23 +44,30 @@ export async function GET(
     }
 
     const parsed = await parseAndEnrichPokemonDecklist(deck.rawText ?? "");
+    const cards = toStoredParsedCards(parsed.cards);
+    const updatedAt = deck.updatedAt ? new Date(deck.updatedAt) : new Date();
+    const etag = `"player-deck-${deck._id.toString()}-${updatedAt.getTime()}"`;
+
+    if (request.headers.get("if-none-match") === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          ETag: etag,
+          "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        },
+      });
+    }
 
     const pdfData = {
       eventName: deck.name,
       playerName: player.playerName,
       popId: player.popId,
       division: getDivision(player.birthDate),
-      cards: (deck.parsedCards ?? []).map((c) => ({
-        qty: c.qty ?? 0,
-        name: c.name ?? "",
-        setCode: c.setCode ?? undefined,
-        number: c.number ?? undefined,
-        category: c.category ?? undefined,
-      })),
+      cards,
       rawText: deck.rawText,
       categories: parsed.categories,
-      cardCount: deck.validation?.cardCount ?? parsed.cardCount ?? 0,
-      updatedAt: deck.updatedAt,
+      cardCount: parsed.cardCount,
+      updatedAt,
     };
 
     const buffer = generateDecklistPdfBuffer(pdfData);
@@ -70,7 +78,11 @@ export async function GET(
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${filename}"`,
-        "Cache-Control": "private, no-cache",
+        "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+        ETag: etag,
+        "Last-Modified": updatedAt.toUTCString(),
       },
     });
   } catch (err) {

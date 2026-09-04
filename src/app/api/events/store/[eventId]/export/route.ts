@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAdminStoreId } from "@/lib/auth";
 import { getAppUrl } from "@/lib/app-url";
 import { parseAndEnrichPokemonDecklist } from "@/lib/card-lookup/enrich-categories";
+import { toStoredParsedCards } from "@/lib/deckParser";
 import { connectDB } from "@/lib/db";
 import {
   decklistPdfFilename,
@@ -114,16 +115,10 @@ export async function GET(
           playerName: sub.playerName,
           popId: sub.popId,
           division: sub.division,
-          cards: (sub.parsedCards ?? []).map((c) => ({
-            qty: c.qty ?? 0,
-            name: c.name ?? "",
-            setCode: c.setCode ?? undefined,
-            number: c.number ?? undefined,
-            category: c.category ?? undefined,
-          })),
+          cards: toStoredParsedCards(parsed.cards),
           rawText: sub.rawText,
           categories: parsed.categories,
-          cardCount: sub.validation?.cardCount ?? 0,
+          cardCount: parsed.cardCount,
           updatedAt: sub.updatedAt,
         };
         const buffer = generateDecklistPdfBuffer(pdfData);

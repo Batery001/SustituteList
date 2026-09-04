@@ -125,7 +125,11 @@ export function DeckView({
         )}
         {pdfToken && (
           <div className="mt-3">
-            <DownloadDeckPdfButton token={pdfToken} className="w-full sm:w-auto" />
+            <DownloadDeckPdfButton
+              token={pdfToken}
+              updatedAt={updatedAt}
+              className="w-full sm:w-auto"
+            />
           </div>
         )}
       </div>

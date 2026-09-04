@@ -22,6 +22,7 @@ type RegistrationRow = {
   paymentStatus: string;
   hasDecklist: boolean;
   deckEditToken?: string | null;
+  deckUpdatedAt?: string | null;
   accessToken: string;
 };
 
@@ -471,6 +472,7 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                           </Link>
                           <DownloadDeckPdfButton
                             token={r.deckEditToken}
+                            updatedAt={r.deckUpdatedAt}
                             className="px-2 py-1 text-xs"
                           />
                         </>

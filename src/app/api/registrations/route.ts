@@ -141,6 +141,9 @@ export async function GET(request: Request) {
         accessToken: r.accessToken,
         hasDecklist: Boolean(sub),
         deckEditToken: sub?.editToken,
+        deckUpdatedAt: sub?.updatedAt
+          ? new Date(sub.updatedAt).toISOString()
+          : null,
         createdAt: r.createdAt,
       };
     }),

@@ -3,23 +3,36 @@ import Link from "next/link";
 export function DownloadDeckPdfButton({
   token,
   deckId,
+  updatedAt,
   label = "Ver PDF",
   className = "",
   variant = "button",
 }: {
   token?: string;
   deckId?: string;
+  /** Bustea la caché del navegador cuando el mazo cambia. */
+  updatedAt?: string | Date | number | null;
   label?: string;
   className?: string;
   variant?: "button" | "link";
 }) {
-  const href = deckId
+  const base = deckId
     ? `/api/player/decks/${encodeURIComponent(deckId)}/pdf`
     : token
       ? `/api/submissions/${encodeURIComponent(token)}/pdf`
       : null;
 
-  if (!href) return null;
+  if (!base) return null;
+
+  const version =
+    updatedAt == null
+      ? String(Date.now())
+      : String(
+          updatedAt instanceof Date
+            ? updatedAt.getTime()
+            : new Date(updatedAt).getTime() || updatedAt
+        );
+  const href = `${base}?v=${encodeURIComponent(version)}`;
 
   if (variant === "link") {
     return (
