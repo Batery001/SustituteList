@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
 import { routes } from "@/lib/routes";
 
 interface DeckRow {
@@ -79,8 +80,11 @@ export function PlayerDecksPage() {
       ) : (
         <ul className="divide-y divide-sky-500/15 rounded-xl border border-sky-500/20">
           {decks.map((d) => (
-            <li key={d._id} className="flex items-center justify-between px-4 py-3">
-              <div>
+            <li
+              key={d._id}
+              className="flex items-center justify-between gap-3 px-4 py-3"
+            >
+              <div className="min-w-0">
                 <p className="font-medium">{d.name}</p>
                 <p className="text-xs text-sky-100/50">
                   {d.cardCount}/60 cartas
@@ -91,17 +95,23 @@ export function PlayerDecksPage() {
                   )}
                 </p>
               </div>
-              <Link
-                href={routes.player.deck(d._id)}
-                className="sub-link text-sm underline"
-              >
-                Editar
-              </Link>
+              <div className="flex shrink-0 items-center gap-3">
+                <DownloadDeckPdfButton
+                  deckId={d._id}
+                  variant="link"
+                  className="text-sm"
+                />
+                <Link
+                  href={routes.player.deck(d._id)}
+                  className="sub-link text-sm underline"
+                >
+                  Editar
+                </Link>
+              </div>
             </li>
           ))}
         </ul>
       )}
-
     </div>
   );
 }

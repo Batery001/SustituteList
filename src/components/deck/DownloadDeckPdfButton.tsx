@@ -2,16 +2,24 @@ import Link from "next/link";
 
 export function DownloadDeckPdfButton({
   token,
+  deckId,
   label = "Ver PDF",
   className = "",
   variant = "button",
 }: {
-  token: string;
+  token?: string;
+  deckId?: string;
   label?: string;
   className?: string;
   variant?: "button" | "link";
 }) {
-  const href = `/api/submissions/${encodeURIComponent(token)}/pdf`;
+  const href = deckId
+    ? `/api/player/decks/${encodeURIComponent(deckId)}/pdf`
+    : token
+      ? `/api/submissions/${encodeURIComponent(token)}/pdf`
+      : null;
+
+  if (!href) return null;
 
   if (variant === "link") {
     return (

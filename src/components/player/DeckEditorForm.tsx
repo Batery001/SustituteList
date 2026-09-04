@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { DeckBuilder } from "@/components/deck/DeckBuilder";
+import { DownloadDeckPdfButton } from "@/components/deck/DownloadDeckPdfButton";
 import { DecklistTextarea } from "@/components/DecklistTextarea";
 import { Button } from "@/components/ui/Button";
 import { routes } from "@/lib/routes";
@@ -165,6 +166,10 @@ export function DeckEditorForm({
       <Button type="submit" disabled={loading} className="w-full">
         {loading ? "Guardando…" : isNew ? "Crear mazo" : "Guardar cambios"}
       </Button>
+
+      {!isNew && deckId && (
+        <DownloadDeckPdfButton deckId={deckId} className="w-full" />
+      )}
 
       {!isNew && (
         <Button
