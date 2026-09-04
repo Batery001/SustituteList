@@ -11,7 +11,10 @@ import {
 
 const TCGDEX_BASE = "https://api.tcgdex.net/v2/en";
 const FETCH_TIMEOUT_MS = 10_000;
-const MAX_RESULTS = 36;
+/** Cuántos candidatos de la API miramos antes de filtrar por formato. */
+const BRIEF_CANDIDATES = 96;
+const FETCH_BATCH = 24;
+const MAX_RESULTS = 24;
 
 type TcgdexBrief = {
   id: string;
@@ -58,8 +61,16 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+/**
+ * Standard: solo Pokémon en rotación (`legal.standard`).
+ * Entrenadores y energías: todas las impresiones (regla de reimpresión).
+ */
 function passesFormat(card: TcgdexFull, format: DeckFormat): boolean {
   if (format === "glc") return true;
+
+  const category = tcgdxCategoryToDeck(card.category);
+  if (category === "trainer" || category === "energy") return true;
+
   if (!card.legal) return true;
   if (format === "standard") return card.legal.standard === true;
   return card.legal.expanded === true;
@@ -99,23 +110,30 @@ export async function searchTcgdexCards(options: {
   if (!briefs?.length) return [];
 
   const format = options.format ?? "standard";
-  const slice = briefs.slice(0, MAX_RESULTS);
+  const candidates = briefs.slice(0, BRIEF_CANDIDATES);
+  const accepted: TcgdexFull[] = [];
 
-  const fullCards = await Promise.all(
-    slice.map((b) => fetchJson<TcgdexFull>(`${TCGDEX_BASE}/cards/${b.id}`))
-  );
+  for (let i = 0; i < candidates.length && accepted.length < MAX_RESULTS; i += FETCH_BATCH) {
+    const batch = candidates.slice(i, i + FETCH_BATCH);
+    const fullCards = await Promise.all(
+      batch.map((b) => fetchJson<TcgdexFull>(`${TCGDEX_BASE}/cards/${b.id}`))
+    );
+    for (const card of fullCards) {
+      if (!card || !passesFormat(card, format)) continue;
+      accepted.push(card);
+      if (accepted.length >= MAX_RESULTS) break;
+    }
+  }
 
-  const filtered = fullCards.filter(
-    (c): c is TcgdexFull => c != null && passesFormat(c, format)
-  );
+  if (accepted.length === 0) return [];
 
-  const enriched = filtered.map((c) => enrichCardImage(c, filtered));
+  const enriched = accepted.map((c) => enrichCardImage(c, accepted));
 
   const results = enriched
     .map(briefToResult)
     .sort((a, b) => scoreResult(b) - scoreResult(a));
 
-  return filterRedundantWithoutImage(results).slice(0, 24);
+  return filterRedundantWithoutImage(results).slice(0, MAX_RESULTS);
 }
 
 function scoreResult(card: CardSearchResult): number {

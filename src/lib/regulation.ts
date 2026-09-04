@@ -69,6 +69,9 @@ export function checkRegulationMarks(
 
   for (const card of cards) {
     if (isBasicEnergy(card.name)) continue;
+    // Entrenadores y energías: cualquier impresión si el efecto está en Standard
+    // (regla de reimpresión). Solo los Pokémon se filtran por marca del set.
+    if (card.category === "trainer" || card.category === "energy") continue;
 
     const mark =
       card.regulationMark?.trim().toUpperCase() ||
@@ -81,7 +84,7 @@ export function checkRegulationMarks(
     seen.add(key);
 
     if (!mark) {
-      if (card.setCode && card.category === "pokemon") {
+      if (card.setCode) {
         warnings.push(
           `No se pudo comprobar la regulación de ${label}. Revisa que sea legal en Standard.`
         );

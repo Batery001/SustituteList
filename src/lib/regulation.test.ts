@@ -44,6 +44,41 @@ describe("regulation", () => {
     assert.equal(errors.length, 0);
   });
 
+  it("acepta entrenadores de sets rotados (reimpresión)", () => {
+    const { errors } = checkRegulationMarks(
+      [
+        {
+          qty: 4,
+          name: "Boss's Orders",
+          setCode: "PAL",
+          number: "172",
+          lineRaw: "4 Boss's Orders PAL 172",
+          category: "trainer",
+          regulationMark: "G",
+        },
+      ],
+      ["H", "I", "J"]
+    );
+    assert.equal(errors.length, 0);
+  });
+
+  it("sigue rechazando Pokémon fuera de regulación", () => {
+    const { errors } = checkRegulationMarks(
+      [
+        {
+          qty: 4,
+          name: "Charmander",
+          setCode: "OBF",
+          number: "4",
+          lineRaw: "4 Charmander OBF 4",
+          category: "pokemon",
+        },
+      ],
+      ["H", "I", "J"]
+    );
+    assert.equal(errors.length, 1);
+  });
+
   it("normaliza marcas vacías al default", () => {
     const marks = normalizeRegulationMarks([]);
     assert.ok(marks.includes("H"));

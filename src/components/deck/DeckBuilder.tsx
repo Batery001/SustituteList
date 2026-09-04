@@ -157,6 +157,7 @@ export function DeckBuilder({
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CardSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [slots, setSlots] = useState<DeckBuilderSlot[]>([]);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState("");
@@ -176,9 +177,11 @@ export function DeckBuilder({
   const runSearch = useCallback(async () => {
     if (query.trim().length < 1) {
       setResults([]);
+      setSearchError(null);
       return;
     }
     setSearching(true);
+    setSearchError(null);
     try {
       const params = new URLSearchParams({
         q: query.trim(),
@@ -186,10 +189,19 @@ export function DeckBuilder({
         format,
       });
       const res = await fetch(`/api/cards/search?${params}`);
-      const data = (await res.json()) as { cards?: CardSearchResult[] };
+      const data = (await res.json()) as {
+        cards?: CardSearchResult[];
+        error?: string;
+      };
+      if (!res.ok) {
+        setResults([]);
+        setSearchError(data.error ?? "No se pudo buscar cartas");
+        return;
+      }
       setResults(data.cards ?? []);
     } catch {
       setResults([]);
+      setSearchError("Error de red al buscar cartas");
     } finally {
       setSearching(false);
     }
@@ -307,6 +319,7 @@ export function DeckBuilder({
         </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-sky-100/50">
           <li>Tocá una carta en los resultados para sumar copias</li>
+          <li>En Standard: Pokémon solo en rotación; entrenadores y energías muestran todas las impresiones</li>
           <li>Tocá una fila de la lista de abajo para quitar esa carta</li>
           <li>Usá «Vaciar mazo» para empezar de cero</li>
         </ul>
@@ -385,8 +398,14 @@ export function DeckBuilder({
         {searching && hasQuery && (
           <p className="mb-2 text-xs text-sky-100/45">Buscando…</p>
         )}
-        {hasQuery && !searching && results.length === 0 && (
-          <p className="mb-2 text-xs text-sky-100/45">Sin resultados</p>
+        {hasQuery && !searching && searchError && (
+          <p className="mb-2 text-xs text-rose-300">{searchError}</p>
+        )}
+        {hasQuery && !searching && !searchError && results.length === 0 && (
+          <p className="mb-2 text-xs text-sky-100/45">
+            Sin resultados. Probá otro nombre o filtrá por Entrenadores /
+            Pokémon.
+          </p>
         )}
         <div className="flex gap-1 overflow-x-auto pb-1">
           {hasQuery
