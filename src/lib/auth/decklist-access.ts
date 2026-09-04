@@ -44,7 +44,11 @@ export async function getDecklistAccess(
   if (!registration) return null;
 
   const playerId = await getPlayerId();
-  if (playerId && registration.playerId?.toString() === playerId) {
+  if (
+    playerId &&
+    (registration.playerId?.toString() === playerId ||
+      registration.registeredByPlayerId?.toString() === playerId)
+  ) {
     return "owner";
   }
 

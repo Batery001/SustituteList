@@ -48,6 +48,12 @@ function RegistrationCard({ reg }: { reg: PlayerRegistrationRow }) {
           >
             {reg.eventName}
           </Link>
+          {reg.isFamilyMember && (
+            <p className="mt-1 text-sm text-sky-200/80">
+              Familiar: {reg.playerName}{" "}
+              <span className="text-sky-100/45">(Pop {reg.popId})</span>
+            </p>
+          )}
           <p className="mt-1 text-sm text-sky-200/75">
             {formatDate(reg.startsAt)}
           </p>

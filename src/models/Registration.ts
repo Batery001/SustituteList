@@ -13,6 +13,15 @@ const RegistrationSchema = new Schema(
       ref: "Player",
       index: true,
     },
+    /** Padre/tutor que inscribió a un familiar (sin cuenta propia). */
+    registeredByPlayerId: {
+      type: Schema.Types.ObjectId,
+      ref: "Player",
+      index: true,
+    },
+    familyMemberId: {
+      type: Schema.Types.ObjectId,
+    },
     playerName: { type: String, required: true, trim: true },
     popId: { type: String, required: true, trim: true },
     email: { type: String, trim: true, lowercase: true },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { getDivision } from "@/lib/division";
+import { serializeFamilyMember } from "@/lib/player/family-members";
 import { getPlayerId } from "@/lib/player-auth";
 import { Player } from "@/models/Player";
 import { Registration } from "@/models/Registration";
@@ -19,9 +20,11 @@ export async function GET() {
     return NextResponse.json({ player: null });
   }
 
-  const registrations = await Registration.find({ playerId: player._id })
+  const registrations = await Registration.find({
+    $or: [{ playerId: player._id }, { registeredByPlayerId: player._id }],
+  })
     .sort({ createdAt: -1 })
-    .limit(20)
+    .limit(40)
     .lean();
 
   const eventIds = registrations.map((r) => r.eventId);
@@ -36,6 +39,7 @@ export async function GET() {
       email: player.email,
       birthDate: player.birthDate,
       division: getDivision(player.birthDate),
+      familyMembers: (player.familyMembers ?? []).map(serializeFamilyMember),
     },
     registrations: registrations.map((r) => {
       const ev = eventMap.get(r.eventId.toString());
@@ -43,9 +47,12 @@ export async function GET() {
         id: r._id.toString(),
         accessToken: r.accessToken,
         paymentStatus: r.paymentStatus,
+        playerName: r.playerName,
+        popId: r.popId,
         eventSlug: ev?.slug,
         eventName: ev?.name,
         decklistSubmissionId: r.decklistSubmissionId?.toString(),
+        isFamilyMember: Boolean(r.registeredByPlayerId),
       };
     }),
   });

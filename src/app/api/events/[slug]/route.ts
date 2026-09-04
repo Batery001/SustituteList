@@ -34,18 +34,24 @@ export async function GET(
     isTransbankConfigured(store);
 
   const playerId = await getPlayerId();
-  let myRegistration: {
+  type MyRegRow = {
     accessToken: string;
     paymentStatus: string;
     deckEditToken: string | null;
-  } | null = null;
+    playerName: string;
+    popId: string;
+    familyMemberId: string | null;
+  };
+  let myRegistration: MyRegRow | null = null;
+  const myRegistrations: MyRegRow[] = [];
 
   if (playerId) {
-    const reg = await Registration.findOne({
+    const regs = await Registration.find({
       eventId: event._id,
-      playerId,
+      $or: [{ playerId }, { registeredByPlayerId: playerId }],
     }).lean();
-    if (reg) {
+
+    for (const reg of regs) {
       let deckEditToken: string | null = null;
       if (reg.decklistSubmissionId) {
         const sub = await DecklistSubmission.findById(
@@ -53,11 +59,18 @@ export async function GET(
         ).lean();
         deckEditToken = sub?.editToken ?? null;
       }
-      myRegistration = {
+      const row: MyRegRow = {
         accessToken: reg.accessToken,
         paymentStatus: reg.paymentStatus,
         deckEditToken,
+        playerName: reg.playerName,
+        popId: reg.popId,
+        familyMemberId: reg.familyMemberId?.toString() ?? null,
       };
+      myRegistrations.push(row);
+      if (!myRegistration || reg.playerId?.toString() === playerId) {
+        myRegistration = row;
+      }
     }
   }
 
@@ -85,6 +98,7 @@ export async function GET(
         }
       : { name: "League", timezone: "UTC" },
     myRegistration,
+    myRegistrations,
     onlinePaymentsAvailable,
   });
 }

@@ -19,6 +19,7 @@ import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Store } from "@/models/Store";
 import { User } from "@/models/User";
 import { isValidEmail } from "@/lib/app-url";
+import { findFamilyMember } from "@/lib/player/family-members";
 import type { Types } from "mongoose";
 
 async function resumeRegistrationResponse(
@@ -29,6 +30,7 @@ async function resumeRegistrationResponse(
     playerName: string;
     popId: string;
     division: string;
+    familyMemberId?: Types.ObjectId | null;
     decklistSubmissionId?: Types.ObjectId | null;
   },
   eventId: Types.ObjectId
@@ -61,6 +63,7 @@ async function resumeRegistrationResponse(
       division: existing.division,
       playerName: existing.playerName,
       popId: existing.popId,
+      familyMemberId: existing.familyMemberId?.toString() ?? null,
     },
     deckEditToken,
   });
@@ -158,6 +161,7 @@ export async function POST(request: Request) {
       popId?: string;
       birthDate?: string;
       email?: string;
+      familyMemberId?: string;
     };
 
     const { eventSlug } = body;
@@ -188,16 +192,37 @@ export async function POST(request: Request) {
     let birth: Date;
     let guestEmail: string | undefined;
     let playerEmail: string | undefined;
+    let familyMemberId: Types.ObjectId | undefined;
+    let registeredByPlayerId: string | undefined;
+    let registeringSelf = false;
 
     if (playerId) {
       const player = await Player.findById(playerId);
       if (!player) {
         return NextResponse.json({ error: msg.api.playerNotFound }, { status: 401 });
       }
-      playerName = player.playerName;
-      rawPopId = player.popId;
-      birth = player.birthDate;
-      playerEmail = player.email;
+
+      if (body.familyMemberId?.trim()) {
+        const member = findFamilyMember(player, body.familyMemberId.trim());
+        if (!member) {
+          return NextResponse.json(
+            { error: "Familiar no encontrado en tu cuenta" },
+            { status: 404 }
+          );
+        }
+        playerName = member.playerName;
+        rawPopId = member.popId;
+        birth = member.birthDate;
+        playerEmail = player.email;
+        familyMemberId = member._id;
+        registeredByPlayerId = playerId;
+      } else {
+        registeringSelf = true;
+        playerName = player.playerName;
+        rawPopId = player.popId;
+        birth = player.birthDate;
+        playerEmail = player.email;
+      }
     } else {
       if (!playerName || !rawPopId || !body.birthDate) {
         return NextResponse.json(
@@ -243,9 +268,10 @@ export async function POST(request: Request) {
 
     const popId = normalizePopId(rawPopId);
 
-    const existingByPlayer = playerId
-      ? await Registration.findOne({ eventId: event._id, playerId })
-      : null;
+    const existingByPlayer =
+      registeringSelf && playerId
+        ? await Registration.findOne({ eventId: event._id, playerId })
+        : null;
 
     const existingByPop =
       existingByPlayer ??
@@ -254,7 +280,7 @@ export async function POST(request: Request) {
     let existing = existingByPop;
     if (!existing) {
       const inEvent = await Registration.find({ eventId: event._id }).select(
-        "popId playerId accessToken paymentStatus playerName division decklistSubmissionId"
+        "popId playerId registeredByPlayerId accessToken paymentStatus playerName division decklistSubmissionId"
       );
       existing =
         inEvent.find((row) => normalizePopId(row.popId) === popId) ?? null;
@@ -264,7 +290,10 @@ export async function POST(request: Request) {
       if (playerId) {
         const ownsRegistration =
           existing.playerId?.toString() === playerId ||
-          (!existing.playerId && normalizePopId(existing.popId) === popId);
+          existing.registeredByPlayerId?.toString() === playerId ||
+          (!existing.playerId &&
+            !existing.registeredByPlayerId &&
+            normalizePopId(existing.popId) === popId);
 
         if (!ownsRegistration) {
           return NextResponse.json(
@@ -273,7 +302,7 @@ export async function POST(request: Request) {
           );
         }
 
-        if (!existing.playerId) {
+        if (registeringSelf && !existing.playerId) {
           await Registration.updateOne(
             { _id: existing._id },
             { $set: { playerId, popId } }
@@ -282,7 +311,7 @@ export async function POST(request: Request) {
         return resumeRegistrationResponse(existing, event._id);
       }
 
-      if (existing.playerId) {
+      if (existing.playerId || existing.registeredByPlayerId) {
         return NextResponse.json(
           { error: msg.api.duplicateRegistration },
           { status: 409 }
@@ -310,7 +339,13 @@ export async function POST(request: Request) {
     try {
       const registration = await Registration.create({
         eventId: event._id,
-        ...(playerId ? { playerId } : {}),
+        ...(registeringSelf && playerId ? { playerId } : {}),
+        ...(registeredByPlayerId
+          ? {
+              registeredByPlayerId,
+              familyMemberId,
+            }
+          : {}),
         playerName: playerName!,
         popId,
         ...(guestEmail || playerEmail
@@ -332,6 +367,7 @@ export async function POST(request: Request) {
             division: registration.division,
             playerName: registration.playerName,
             popId: registration.popId,
+            familyMemberId: registration.familyMemberId?.toString() ?? null,
           },
         },
         { status: 201 }

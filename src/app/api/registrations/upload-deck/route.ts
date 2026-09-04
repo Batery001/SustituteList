@@ -66,9 +66,10 @@ export async function POST(request: Request) {
 
     await connectDB();
 
+    const playerOid = new mongoose.Types.ObjectId(playerId);
     const registration = await Registration.findOne({
       _id: registrationId,
-      playerId: new mongoose.Types.ObjectId(playerId),
+      $or: [{ playerId: playerOid }, { registeredByPlayerId: playerOid }],
     });
     if (!registration) {
       return NextResponse.json(

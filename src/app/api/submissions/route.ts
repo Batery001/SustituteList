@@ -98,7 +98,14 @@ export async function POST(request: Request) {
     if (!registration) {
       const playerId = await getPlayerId();
       const lookupPopId = popId?.trim();
-      if (playerId) {
+      if (playerId && lookupPopId) {
+        const normalizedLookup = normalizePopId(lookupPopId);
+        registration = await Registration.findOne({
+          eventId: event._id,
+          popId: normalizedLookup,
+          $or: [{ playerId }, { registeredByPlayerId: playerId }],
+        });
+      } else if (playerId) {
         registration = await Registration.findOne({
           eventId: event._id,
           playerId,

@@ -20,6 +20,9 @@ export type PlayerRegistrationRow = {
   hasDecklist: boolean;
   deckEditToken: string | null;
   division: string;
+  playerName: string;
+  popId: string;
+  isFamilyMember: boolean;
   createdAt: string;
 };
 
@@ -29,6 +32,9 @@ function serializeRegistration(
     paymentStatus: string;
     division: string;
     createdAt: Date;
+    playerName: string;
+    popId: string;
+    registeredByPlayerId?: mongoose.Types.ObjectId | null;
     decklistSubmissionId?: mongoose.Types.ObjectId | null;
   },
   event: IEvent,
@@ -53,6 +59,9 @@ function serializeRegistration(
     hasDecklist: Boolean(reg.decklistSubmissionId),
     deckEditToken: editToken,
     division: reg.division,
+    playerName: reg.playerName,
+    popId: reg.popId,
+    isFamilyMember: Boolean(reg.registeredByPlayerId),
     createdAt: reg.createdAt.toISOString(),
   };
 }
@@ -63,7 +72,9 @@ export async function getPlayerRegistrations(
   await dbConnect();
 
   const objectId = new mongoose.Types.ObjectId(playerId);
-  const registrations = await Registration.find({ playerId: objectId })
+  const registrations = await Registration.find({
+    $or: [{ playerId: objectId }, { registeredByPlayerId: objectId }],
+  })
     .sort({ createdAt: -1 })
     .lean();
 
@@ -127,7 +138,10 @@ export async function getPlayerRegistrationById(
 
   const reg = await Registration.findOne({
     _id: registrationId,
-    playerId: new mongoose.Types.ObjectId(playerId),
+    $or: [
+      { playerId: new mongoose.Types.ObjectId(playerId) },
+      { registeredByPlayerId: new mongoose.Types.ObjectId(playerId) },
+    ],
   }).lean();
 
   if (!reg) return null;

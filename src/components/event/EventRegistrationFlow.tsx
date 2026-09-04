@@ -8,6 +8,7 @@ import { CancelAttendanceButton } from "@/components/event/CancelAttendanceButto
 import { OnlinePaymentPanel } from "@/components/OnlinePaymentPanel";
 import { Button } from "@/components/ui/Button";
 import { formatDivision } from "@/lib/division";
+import type { FamilyMemberDto } from "@/lib/player/family-members";
 import {
   getEventRegistrationToken,
   saveEventRegistrationToken,
@@ -28,6 +29,7 @@ type RegistrationState = {
   deckEditToken: string | null;
   playerName?: string;
   popId?: string;
+  familyMemberId?: string | null;
 };
 
 type Step = "register" | "pay" | "decklist" | "done" | "closed";
@@ -44,8 +46,10 @@ function formatFee(pesos: number): string {
 function getStep(
   canSubmit: boolean,
   registration: RegistrationState | null,
-  entryFeeCents: number
+  entryFeeCents: number,
+  forceNew: boolean
 ): Step {
+  if (forceNew) return "register";
   if (!canSubmit && !registration?.deckEditToken) return "closed";
   if (!registration) return "register";
   if (entryFeeCents > 0 && registration.paymentStatus !== "paid") return "pay";
@@ -79,9 +83,16 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     popId: string;
     division: string;
   } | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMemberDto[]>([]);
+  const [myRegistrations, setMyRegistrations] = useState<RegistrationState[]>(
+    []
+  );
   const [registration, setRegistration] = useState<RegistrationState | null>(
     null
   );
+  const [forceNew, setForceNew] = useState(false);
+  /** null = yo; string = id del familiar */
+  const [entrantId, setEntrantId] = useState<string | null>(null);
   const [guestMode, setGuestMode] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [guestPopId, setGuestPopId] = useState("");
@@ -108,50 +119,28 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
         deckEditToken: data.deckEditToken ?? null,
         playerName: data.registration.playerName,
         popId: data.registration.popId,
+        familyMemberId: data.registration.familyMemberId ?? null,
       };
     },
     []
   );
 
-  const load = useCallback(async () => {
-    const storedToken = getEventRegistrationToken(eventSlug);
-    const [meRes, evRes] = await Promise.all([
-      fetch("/api/auth/player/me"),
-      fetch(`/api/events/${eventSlug}`),
-    ]);
-    const meData = await meRes.json();
-    const evData = await evRes.json();
-
-    if (meData.player) {
-      setPlayer({
-        playerName: meData.player.playerName,
-        popId: meData.player.popId,
-        division: meData.player.division,
-      });
-    }
-
-    const reg = await resolveRegistration(
-      evData.myRegistration,
-      storedToken
-    );
-    setRegistration(reg);
-    if (reg?.accessToken) {
-      saveEventRegistrationToken(eventSlug, reg.accessToken);
-    }
-    setLoading(false);
-  }, [eventSlug, resolveRegistration]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const applyLoaded = useCallback(
+    async (
+      meData: {
+        player?: {
+          playerName: string;
+          popId: string;
+          division: string;
+          familyMembers?: FamilyMemberDto[];
+        };
+      },
+      evData: {
+        myRegistration?: RegistrationState | null;
+        myRegistrations?: RegistrationState[];
+      }
+    ) => {
       const storedToken = getEventRegistrationToken(eventSlug);
-      const [meRes, evRes] = await Promise.all([
-        fetch("/api/auth/player/me"),
-        fetch(`/api/events/${eventSlug}`),
-      ]);
-      if (cancelled) return;
-      const meData = await meRes.json();
-      const evData = await evRes.json();
 
       if (meData.player) {
         setPlayer({
@@ -159,29 +148,97 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           popId: meData.player.popId,
           division: meData.player.division,
         });
+        setFamilyMembers(meData.player.familyMembers ?? []);
       }
 
+      const regs: RegistrationState[] = Array.isArray(evData.myRegistrations)
+        ? evData.myRegistrations
+        : evData.myRegistration
+          ? [evData.myRegistration]
+          : [];
+      setMyRegistrations(regs);
+
+      const byToken = storedToken
+        ? regs.find((r) => r.accessToken === storedToken)
+        : undefined;
+      const preferred =
+        byToken ??
+        regs.find((r) => !r.familyMemberId) ??
+        regs[0] ??
+        null;
+
       const reg = await resolveRegistration(
-        evData.myRegistration,
-        storedToken
+        preferred ?? evData.myRegistration,
+        preferred ? null : storedToken
       );
-      if (cancelled) return;
       setRegistration(reg);
+      setForceNew(false);
       if (reg?.accessToken) {
         saveEventRegistrationToken(eventSlug, reg.accessToken);
       }
-      setLoading(false);
+      if (reg?.familyMemberId) {
+        setEntrantId(reg.familyMemberId);
+      } else {
+        setEntrantId(null);
+      }
+    },
+    [eventSlug, resolveRegistration]
+  );
+
+  const load = useCallback(async () => {
+    const [meRes, evRes] = await Promise.all([
+      fetch("/api/auth/player/me"),
+      fetch(`/api/events/${eventSlug}`),
+    ]);
+    const meData = await meRes.json();
+    const evData = await evRes.json();
+    await applyLoaded(meData, evData);
+    setLoading(false);
+  }, [applyLoaded, eventSlug]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [meRes, evRes] = await Promise.all([
+        fetch("/api/auth/player/me"),
+        fetch(`/api/events/${eventSlug}`),
+      ]);
+      if (cancelled) return;
+      const meData = await meRes.json();
+      const evData = await evRes.json();
+      await applyLoaded(meData, evData);
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [eventSlug, resolveRegistration]);
+  }, [applyLoaded, eventSlug]);
 
-  const step = getStep(canSubmit, registration, entryFeeCents);
+  const registeredKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const r of myRegistrations) {
+      keys.add(r.familyMemberId ?? "self");
+    }
+    return keys;
+  }, [myRegistrations]);
+
+  const selfTaken = registeredKeys.has("self");
+  const canRegisterSomeone =
+    !selfTaken || familyMembers.some((m) => !registeredKeys.has(m.id));
+
+  const step = getStep(canSubmit, registration, entryFeeCents, forceNew);
 
   const displayName =
     registration?.playerName ?? player?.playerName ?? guestName;
   const displayPopId = registration?.popId ?? player?.popId ?? guestPopId;
+
+  function selectRegistration(reg: RegistrationState) {
+    setForceNew(false);
+    setRegistration(reg);
+    setEntrantId(reg.familyMemberId ?? null);
+    saveEventRegistrationToken(eventSlug, reg.accessToken);
+    setError(null);
+  }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -189,7 +246,10 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     setRegistering(true);
 
     const body = player
-      ? { eventSlug }
+      ? {
+          eventSlug,
+          ...(entrantId ? { familyMemberId: entrantId } : {}),
+        }
       : {
           eventSlug,
           playerName: guestName,
@@ -218,15 +278,22 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       }
 
       const token = data.registration.accessToken as string;
-      saveEventRegistrationToken(eventSlug, token);
-      setRegistration({
+      const next: RegistrationState = {
         accessToken: token,
         paymentStatus: data.registration.paymentStatus,
         deckEditToken: data.deckEditToken ?? null,
         playerName:
           data.registration.playerName ?? player?.playerName ?? guestName,
         popId: data.registration.popId ?? player?.popId ?? guestPopId,
+        familyMemberId: data.registration.familyMemberId ?? entrantId,
+      };
+      saveEventRegistrationToken(eventSlug, token);
+      setRegistration(next);
+      setMyRegistrations((prev) => {
+        const without = prev.filter((r) => r.accessToken !== token);
+        return [...without, next];
       });
+      setForceNew(false);
     } catch {
       setError("Error de red. Intenta de nuevo.");
     } finally {
@@ -262,6 +329,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
         playerName: data.registration.playerName,
         popId: data.registration.popId,
       });
+      setForceNew(false);
     } catch {
       setError("Error de red. Intenta de nuevo.");
     } finally {
@@ -279,16 +347,72 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
     { id: "decklist", label: "Tu mazo", num: 3 },
   ];
 
+  const selectedFamily = entrantId
+    ? familyMembers.find((m) => m.id === entrantId)
+    : null;
+
   return (
     <div className="space-y-6">
+      {player && myRegistrations.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {myRegistrations.map((r) => {
+            const active =
+              !forceNew && registration?.accessToken === r.accessToken;
+            const label = r.familyMemberId
+              ? r.playerName ?? "Familiar"
+              : "Yo";
+            return (
+              <button
+                key={r.accessToken}
+                type="button"
+                onClick={() => selectRegistration(r)}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                  active
+                    ? "border-sky-400/60 bg-sky-500/20 text-sky-50"
+                    : "border-sky-500/20 text-sky-100/60 hover:border-sky-500/40"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {canRegisterSomeone && canSubmit && (
+            <button
+              type="button"
+              onClick={() => {
+                setForceNew(true);
+                setRegistration(null);
+                setError(null);
+                if (!registeredKeys.has("self")) {
+                  setEntrantId(null);
+                } else {
+                  const next = familyMembers.find(
+                    (m) => !registeredKeys.has(m.id)
+                  );
+                  setEntrantId(next?.id ?? null);
+                }
+              }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                forceNew
+                  ? "border-amber-400/50 bg-amber-500/15 text-amber-100"
+                  : "border-dashed border-sky-500/30 text-sky-100/55 hover:border-sky-400/50"
+              }`}
+            >
+              + Inscribir a otro
+            </button>
+          )}
+        </div>
+      )}
+
       <ol className="flex gap-2">
         {steps.map((s) => {
           const done =
-            (s.id === "register" && registration) ||
-            (s.id === "pay" &&
-              (entryFeeCents <= 0 ||
-                registration?.paymentStatus === "paid")) ||
-            (s.id === "decklist" && registration?.deckEditToken);
+            !forceNew &&
+            ((s.id === "register" && registration) ||
+              (s.id === "pay" &&
+                (entryFeeCents <= 0 ||
+                  registration?.paymentStatus === "paid")) ||
+              (s.id === "decklist" && registration?.deckEditToken));
           const active =
             (s.id === "register" && step === "register") ||
             (s.id === "pay" && step === "pay") ||
@@ -349,15 +473,71 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           </p>
 
           {player ? (
-            <div className="mt-4 rounded-lg border border-sky-500/20 bg-sky-950/30 p-4 text-sm">
-              <p className="font-medium">{player.playerName}</p>
-              <p className="text-sky-100/60">
-                Pop {player.popId} · {formatDivision(player.division as "master")}
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm font-medium text-sky-200/80">
+                ¿A quién inscribes?
+                <select
+                  value={entrantId ?? "self"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setEntrantId(v === "self" ? null : v);
+                    setError(null);
+                  }}
+                  className="sub-input mt-1.5 w-full px-3 py-2 text-sm"
+                >
+                  <option value="self" disabled={selfTaken}>
+                    Yo — {player.playerName} (Pop {player.popId})
+                    {selfTaken ? " · ya inscrito" : ""}
+                  </option>
+                  {familyMembers.map((m) => {
+                    const taken = registeredKeys.has(m.id);
+                    return (
+                      <option key={m.id} value={m.id} disabled={taken}>
+                        {m.playerName} (Pop {m.popId})
+                        {taken ? " · ya inscrito" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+
+              {selectedFamily ? (
+                <div className="rounded-lg border border-sky-500/20 bg-sky-950/30 p-3 text-sm">
+                  <p className="font-medium text-sky-50">
+                    {selectedFamily.playerName}
+                  </p>
+                  <p className="text-sky-100/60">
+                    Pop {selectedFamily.popId} · nac.{" "}
+                    {selectedFamily.birthDate}
+                  </p>
+                </div>
+              ) : !selfTaken ? (
+                <div className="rounded-lg border border-sky-500/20 bg-sky-950/30 p-3 text-sm">
+                  <p className="font-medium">{player.playerName}</p>
+                  <p className="text-sky-100/60">
+                    Pop {player.popId} ·{" "}
+                    {formatDivision(player.division as "master")}
+                  </p>
+                </div>
+              ) : null}
+
+              <p className="text-xs text-sky-100/45">
+                Para un hijo sin correo, agrégalo en{" "}
+                <Link
+                  href="/dashboard/player/profile"
+                  className="text-sky-300 underline"
+                >
+                  tu perfil → Familia
+                </Link>{" "}
+                con su Pop ID.
               </p>
-              <p className="mt-2 text-xs text-sky-100/45">
-                Tu Pop ID sale de la cuenta. No se puede inscribir dos veces el
-                mismo jugador.
-              </p>
+
+              {!canRegisterSomeone && (
+                <p className="text-sm text-amber-200">
+                  Ya están ustedes inscritos en este torneo (tú y tus
+                  familiares).
+                </p>
+              )}
             </div>
           ) : guestMode ? (
             <div className="mt-4 space-y-3">
@@ -417,7 +597,9 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           ) : (
             <div className="mt-4 space-y-3 text-sm">
               <p className="text-sky-100/70">
-                Con cuenta es más rápido en futuros torneos.
+                Con cuenta es más rápido en futuros torneos. También puedes
+                agregar familiares (hijos con Pop ID, sin correo) desde el
+                perfil.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
@@ -443,7 +625,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             </div>
           )}
 
-          {(player || guestMode) && (
+          {(player || guestMode) && canRegisterSomeone && (
             <form
               onSubmit={recoverMode ? handleRecover : handleRegister}
               className="mt-4"
@@ -471,12 +653,23 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
                   ) : null}
                 </p>
               )}
-              <Button type="submit" disabled={registering} className="w-full">
+              <Button
+                type="submit"
+                disabled={
+                  registering ||
+                  (Boolean(player) &&
+                    ((entrantId === null && selfTaken) ||
+                      (entrantId !== null && registeredKeys.has(entrantId))))
+                }
+                className="w-full"
+              >
                 {registering
                   ? "…"
                   : recoverMode
                     ? "Recuperar inscripción"
-                    : "Confirmar inscripción"}
+                    : entrantId
+                      ? `Inscribir a ${selectedFamily?.playerName ?? "familiar"}`
+                      : "Confirmar inscripción"}
               </Button>
             </form>
           )}
@@ -494,8 +687,9 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
       {step === "decklist" && registration && (
         <section className="space-y-4">
           <div className="sub-panel rounded-xl p-4 text-sm text-emerald-300">
-            Estás inscrito. Sube tu lista de 60 cartas para que la tienda la
-            tenga lista antes del torneo.
+            {registration.familyMemberId
+              ? `${displayName} está inscrito/a. Sube su lista de 60 cartas.`
+              : "Estás inscrito. Sube tu lista de 60 cartas para que la tienda la tenga lista antes del torneo."}
           </div>
           <EventDeckStep
             eventSlug={eventSlug}
@@ -507,6 +701,13 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
             onSubmitted={(deckEditToken) => {
               setRegistration((prev) =>
                 prev ? { ...prev, deckEditToken } : prev
+              );
+              setMyRegistrations((prev) =>
+                prev.map((r) =>
+                  r.accessToken === registration.accessToken
+                    ? { ...r, deckEditToken }
+                    : r
+                )
               );
             }}
           />
@@ -520,14 +721,14 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
               Lista enviada
             </p>
             <p className="mt-1 text-sm text-sky-100/55">
-              La tienda ya tiene tu mazo. Las cartas no se muestran en esta
-              página. Puedes cambiarlo hasta {deadlineLabel}.
+              La tienda ya tiene el mazo de {displayName}. Puedes cambiarlo
+              hasta {deadlineLabel}.
             </p>
             <Link
               href={`/e/${eventSlug}/deck/${registration.deckEditToken}`}
               className="sub-btn-primary mt-4 inline-flex rounded-xl px-4 py-3 text-sm font-semibold"
             >
-              Cambiar mi lista
+              Cambiar lista
             </Link>
           </div>
         </section>
@@ -540,7 +741,7 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           </p>
           {registration?.deckEditToken && (
             <p className="mt-3 text-sm text-sky-100/55">
-              Tu lista ya está en la tienda. No se muestra en público.
+              La lista ya está en la tienda. No se muestra en público.
             </p>
           )}
         </div>
@@ -551,7 +752,12 @@ export function EventRegistrationFlow(props: EventRegistrationFlowProps) {
           accessToken={registration.accessToken}
           eventSlug={eventSlug}
           onCancelled={() => {
+            const token = registration.accessToken;
+            setMyRegistrations((prev) =>
+              prev.filter((r) => r.accessToken !== token)
+            );
             setRegistration(null);
+            setForceNew(false);
             setError(null);
           }}
         />
