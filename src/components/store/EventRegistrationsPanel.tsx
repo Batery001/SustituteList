@@ -204,34 +204,6 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
     }
   }
 
-  async function notify(kind: "missing-list" | "deadline", registrationId?: string) {
-    setBusy("notify");
-    setError(null);
-    try {
-      const res = await fetch(`/api/events/store/${eventId}/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, registrationId }),
-      });
-      const data = (await res.json()) as {
-        error?: string;
-        sent?: number;
-        skipped?: number;
-      };
-      if (!res.ok) {
-        setError(data.error ?? "No se pudieron enviar los avisos");
-        return;
-      }
-      window.alert(
-        `Correos enviados: ${data.sent ?? 0}. Sin correo o ya tenían lista: ${data.skipped ?? 0}.`
-      );
-    } catch {
-      setError("Error de red. Intenta de nuevo.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   function playerUrl(r: RegistrationRow) {
     if (!event) return "";
     return `${window.location.origin}/e/${event.slug}/mi-inscripcion/${r.accessToken}`;
@@ -385,30 +357,6 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
         >
           {event.status === "Active" ? "Cerrar torneo" : "Reabrir torneo"}
         </Button>
-        {event.emailConfigured ? (
-          <>
-            <button
-              type="button"
-              disabled={busy === "notify"}
-              onClick={() => void notify("missing-list")}
-              className="rounded-lg border border-amber-500/30 px-4 py-2 text-sm text-amber-200"
-            >
-              Avisar falta lista
-            </button>
-            <button
-              type="button"
-              disabled={busy === "notify"}
-              onClick={() => void notify("deadline")}
-              className="rounded-lg border border-sky-500/25 px-4 py-2 text-sm text-sky-200"
-            >
-              Recordar plazo
-            </button>
-          </>
-        ) : (
-          <p className="self-center text-xs text-sky-100/40">
-            Para correos: SMTP de Gmail o RESEND_API_KEY en Vercel.
-          </p>
-        )}
       </div>
 
       <p className="text-xs text-sky-100/45">
@@ -545,16 +493,6 @@ export function EventRegistrationsPanel({ eventId }: { eventId: string }) {
                   >
                     WhatsApp
                   </button>
-                  {event.emailConfigured && r.email && !r.hasDecklist && (
-                    <button
-                      type="button"
-                      disabled={busy === "notify"}
-                      onClick={() => void notify("missing-list", r._id)}
-                      className="rounded-md border border-amber-500/30 px-2 py-1 text-amber-200"
-                    >
-                      Avisar
-                    </button>
-                  )}
                   <button
                     type="button"
                     disabled={removingId === r._id}

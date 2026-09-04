@@ -10,7 +10,6 @@ type Area = "public" | "player" | "store";
 interface Session {
   store: { name: string } | null;
   player: { playerName: string } | null;
-  emailVerified?: boolean | null;
 }
 
 function NavLink({
@@ -40,8 +39,6 @@ export function AppNav({ area }: { area: Area }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
-  const [verifyMsg, setVerifyMsg] = useState<string | null>(null);
-  const [sendingVerify, setSendingVerify] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/session")
@@ -51,66 +48,6 @@ export function AppNav({ area }: { area: Area }) {
       })
       .catch(() => setSession({ store: null, player: null }));
   }, [pathname]);
-
-  async function resendVerification() {
-    setSendingVerify(true);
-    setVerifyMsg(null);
-    try {
-      const res = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        skipped?: boolean;
-        alreadyVerified?: boolean;
-        configured?: boolean;
-        error?: string;
-      };
-      if (data.alreadyVerified) {
-        setVerifyMsg("Este correo ya está verificado.");
-        return;
-      }
-      if (data.configured === false || data.ok === false) {
-        setVerifyMsg(data.error ?? "No se pudo enviar el correo");
-        return;
-      }
-      if (!res.ok) {
-        setVerifyMsg(data.error ?? "No se pudo enviar el correo");
-        return;
-      }
-      setVerifyMsg(
-        data.skipped
-          ? "Ya te enviamos un correo hace poco. Revisa la bandeja y el spam."
-          : "Te enviamos el correo de verificación. Revisa también spam."
-      );
-    } catch {
-      setVerifyMsg("Error de red. Intenta de nuevo.");
-    } finally {
-      setSendingVerify(false);
-    }
-  }
-
-  const verifyBanner =
-    session && session.emailVerified === false ? (
-      <div className="mb-3 rounded-lg border border-amber-400/40 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
-        <p className="font-medium">Confirma tu correo</p>
-        <p className="mt-1 text-amber-100/80">
-          Tu cuenta sigue activa. Si te llega un correo de confirmación, pulsa
-          el enlace. Si no llega, usa Reenviar.
-        </p>
-        <button
-          type="button"
-          disabled={sendingVerify}
-          onClick={() => void resendVerification()}
-          className="mt-2 rounded-md border border-amber-400/40 px-2 py-1 text-amber-50 hover:bg-amber-900/50 disabled:opacity-50"
-        >
-          {sendingVerify ? "Enviando…" : "Reenviar correo"}
-        </button>
-        {verifyMsg && <p className="mt-1 text-amber-50/90">{verifyMsg}</p>}
-      </div>
-    ) : null;
 
   async function logoutStore() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -131,7 +68,6 @@ export function AppNav({ area }: { area: Area }) {
   if (area === "store" && hasStore) {
     return (
       <nav className="border-t border-sky-500/15 px-4 py-3">
-        {verifyBanner}
         {dualSession && (
           <p className="mb-2 text-xs text-amber-300/90">
             Tienes sesión de tienda y de jugador abiertas. Cierra una si te
@@ -208,7 +144,6 @@ export function AppNav({ area }: { area: Area }) {
 
     return (
       <nav className="border-t border-sky-500/15 px-4 py-3">
-        {verifyBanner}
         {dualSession && area === "player" && (
           <p className="mb-2 text-xs text-amber-300/90">
             También estás conectado como tienda.{" "}
@@ -275,7 +210,6 @@ export function AppNav({ area }: { area: Area }) {
     if (hasStore) {
       return (
         <nav className="border-t border-sky-500/15 px-4 py-3">
-          {verifyBanner}
           <p className="mb-2 text-xs font-semibold uppercase text-rose-400/90">
             Modo tienda · {session!.store!.name}
           </p>

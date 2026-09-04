@@ -19,7 +19,6 @@ import { DecklistSubmission } from "@/models/DecklistSubmission";
 import { Store } from "@/models/Store";
 import { User } from "@/models/User";
 import { isValidEmail } from "@/lib/app-url";
-import { notifyNewRegistration } from "@/lib/notify-registration";
 import type { Types } from "mongoose";
 
 async function resumeRegistrationResponse(
@@ -321,24 +320,8 @@ export async function POST(request: Request) {
         accessToken,
       });
 
-      try {
-        await notifyNewRegistration({
-          email: guestEmail ?? playerEmail,
-          playerId: playerId ?? null,
-          playerName: registration.playerName,
-          eventName: event.name,
-          storeName: store?.name ?? "Tienda",
-          accessToken: registration.accessToken,
-          eventSlug,
-          hasAccount: Boolean(playerId),
-        });
-      } catch (mailErr) {
-        console.error("Registration email error:", mailErr);
-      }
-
       return NextResponse.json(
         {
-          emailSent: Boolean(guestEmail || playerEmail),
           registration: {
             id: registration._id.toString(),
             accessToken: registration.accessToken,

@@ -88,10 +88,6 @@ function AuthRegisterFormInner() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="rounded-lg border border-amber-400/35 bg-amber-950/30 p-3 text-sm text-amber-100">
-        Te enviaremos un correo para verificar la cuenta. Puedes entrar y usar
-        todo igual desde ya; verás un aviso hasta que pulses el enlace.
-      </p>
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"

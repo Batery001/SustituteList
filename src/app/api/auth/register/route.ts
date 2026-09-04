@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { RegisterError, registerUser } from "@/lib/auth/register-user";
-import { sendVerificationEmailTo } from "@/lib/auth/email-verification";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -50,15 +49,7 @@ export async function POST(request: Request) {
         birthDate: body.birthDate,
       });
 
-      const mailed = await sendVerificationEmailTo(body.email, {
-        force: true,
-        name: body.name,
-      });
-
-      return NextResponse.json(
-        { ok: true, emailSent: Boolean(mailed.ok), ...result },
-        { status: 201 }
-      );
+      return NextResponse.json({ ok: true, ...result }, { status: 201 });
     }
 
     if (!body.city?.trim()) {
@@ -77,15 +68,7 @@ export async function POST(request: Request) {
       country: body.country ?? "Chile",
     });
 
-    const mailed = await sendVerificationEmailTo(body.email, {
-      force: true,
-      name: body.name,
-    });
-
-    return NextResponse.json(
-      { ok: true, emailSent: Boolean(mailed.ok), ...result },
-      { status: 201 }
-    );
+    return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (err) {
     if (err instanceof RegisterError) {
       return NextResponse.json({ error: err.message }, { status: err.status });

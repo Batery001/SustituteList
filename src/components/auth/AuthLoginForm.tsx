@@ -39,12 +39,6 @@ function AuthLoginFormInner() {
       return;
     }
 
-    await fetch("/api/auth/verify-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    }).catch(() => {});
-
     const sessionRes = await fetch("/api/auth/session");
     const session = (await sessionRes.json()) as {
       user?: { role: UserRole };
